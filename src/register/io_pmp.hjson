@@ -1,0 +1,53 @@
+{
+	name: "io_pmp",
+    clock_primary: "clk_i",
+	reset_primary: "rst_ni",
+	bus_interfaces: [{
+	    protocol: "reg_iface",
+	    direction: "device"
+    }],
+    regwidth: "64",
+	registers: [{
+	    multireg: {
+            name: "PMP_ADDR",
+            desc: "PMP address",
+            count: "16",
+            cname: "PMP",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [{
+                bits: "53:0",
+                name: "PMP_ADDR",
+                desc: "Single PMP address",
+                resval: "0"
+            }]
+        }},
+        {
+        multireg: {
+            name: "PMP_CFG",
+            desc: "PMP configuration",
+            count: "16",
+            cname: "PMP",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [{
+                bits: "7:0",
+                name: "PMP_CFG",
+                desc: "Single PMP config entry: { [7]locked, [6:5]reserved, [4:3]addr_mode, [2:0]access_type }",
+                resval: "0"
+            }]
+        }}
+        #,
+        #{
+        #    name: "PMP_GRANULARITY",
+        #    desc: "PMP granularity",
+        #    swaccess: "rw",
+        #    hwaccess: "hro",
+        #    fields: [{
+        #        bits: "53:0"
+        #        name: "PMP_GRANULARITY"
+        #        desc: "Granularity of PMP"
+        #    }]
+        #}
+    ]
+}

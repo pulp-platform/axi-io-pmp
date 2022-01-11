@@ -1,0 +1,13 @@
+# python virtual environment
+venv/
+# pycharm
+.idea/
+# pytest
+.pytest_cache
+# cocotb simulation
+sim_build
+tb/results.xml
+# pycache
+*__pycache__*
+# openroad flow
+extras/OpenRoad-flow-scripts/*
