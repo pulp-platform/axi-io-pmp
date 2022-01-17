@@ -1,4 +1,5 @@
 """
+
 Copyright (c) 2020 Alex Forencich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,6 +19,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
 """
 
 import itertools
@@ -33,24 +35,18 @@ from cocotb.triggers import RisingEdge
 from cocotbext.axi import AxiBus, AxiMaster, AxiRam
 
 
-class Testbed:
+class TB(object):
 
     def __init__(self, dut):
-        # import pydevd_pycharm
-        # pydevd_pycharm.settrace('localhost', port=9090, stdoutToServer=True, stderrToServer=True)
-
         self.dut = dut
 
         self.log = logging.getLogger("cocotb.tb")
         self.log.setLevel(logging.DEBUG)
 
-        cocotb.start_soon(Clock(dut.clk, 2, units="ns").start())
+        cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
 
-        self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "axi"), dut.clk, dut.rst)
-        self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "axi"), dut.clk, dut.rst, size=2 ** 16)
-
-        #self.axi_ram.write_if.log.setLevel(logging.DEBUG)
-        #self.axi_ram.read_if.log.setLevel(logging.DEBUG)
+        self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
+        self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "m_axi"), dut.clk, dut.rst, size=2 ** 16)
 
     async def cycle_reset(self):
         self.dut.rst.setimmediatevalue(0)
@@ -64,8 +60,8 @@ class Testbed:
         await RisingEdge(self.dut.clk)
 
 
-async def run_test_read(dut, idle_inserter=None, backpressure_inserter=None, size=None):
-    tb = Testbed(dut)
+async def run_test(dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None):
+    tb = TB(dut)
 
     byte_lanes = tb.axi_master.write_if.byte_lanes
     max_burst_size = tb.axi_master.write_if.max_burst_size
@@ -75,17 +71,15 @@ async def run_test_read(dut, idle_inserter=None, backpressure_inserter=None, siz
 
     await tb.cycle_reset()
 
-    for length in [8]:
-        for offset in [0]:
-            tb.log.info("length %d, offset %d", length, offset)
-            addr = offset + 0x1000
+    for length in [8]:  # list(range(1, byte_lanes*2))+[1024]:
+        for offset in [0]:  # list(range(byte_lanes, byte_lanes*2))+list(range(4096-byte_lanes, 4096)):
 
+            tb.log.info("length %d, offset %d, size %d", length, offset, size)
+            addr = offset + 0x1000
             test_data = bytearray([x % 256 for x in range(length)])
 
-            # store data to AXI RAM module
             tb.axi_ram.write(addr, test_data)
 
-            # read data using the AXI master
             data = await tb.axi_master.read(addr, length, size=size)
 
             assert data.data == test_data
@@ -100,43 +94,58 @@ def cycle_pause():
 
 if cocotb.SIM_NAME:
 
-    data_width = len(cocotb.top.axi_wdata)
+    data_width = len(cocotb.top.s_axi_wdata)
     byte_lanes = data_width // 8
     max_burst_size = (byte_lanes - 1).bit_length()
 
-    for test in [run_test_read]:
+    for test in [run_test]:
         factory = TestFactory(test)
-        #factory.add_option("size", [None] + list(range(max_burst_size)))
+        factory.add_option("size", [None] + list(range(max_burst_size)))
         factory.generate_tests()
 
 # cocotb-test
-tests_dir = os.path.dirname(__file__)
+tests_dir = os.path.abspath(os.path.dirname(__file__))
+rtl_dir = os.path.abspath(os.path.join(tests_dir, '', '../axi_reg', 'src'))
 
 
-@pytest.mark.parametrize("data_width", [32])
-def test_axi(request, data_width):
-    dut = "test_axi"
+@pytest.mark.parametrize("reg_type", [1])  # [None, 0, 1, 2]
+@pytest.mark.parametrize("data_width", [32])  # [8, 16, 32]
+def test_axi_register(request, data_width, reg_type):
+    dut = "axi_register"
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
 
     verilog_sources = [
-        os.path.join(tests_dir, "..", "src", f"{dut}.v"),
+        os.path.join(rtl_dir, f"{dut}.v"),
+        os.path.join(rtl_dir, f"{dut}_rd.v"),
+        os.path.join(rtl_dir, f"{dut}_wr.v"),
     ]
 
-    parameters = dict()
+    parameters = {}
+
     parameters['DATA_WIDTH'] = data_width
     parameters['ADDR_WIDTH'] = 32
     parameters['STRB_WIDTH'] = parameters['DATA_WIDTH'] // 8
     parameters['ID_WIDTH'] = 8
+    parameters['AWUSER_ENABLE'] = 0
     parameters['AWUSER_WIDTH'] = 1
+    parameters['WUSER_ENABLE'] = 0
     parameters['WUSER_WIDTH'] = 1
+    parameters['BUSER_ENABLE'] = 0
     parameters['BUSER_WIDTH'] = 1
+    parameters['ARUSER_ENABLE'] = 0
     parameters['ARUSER_WIDTH'] = 1
+    parameters['RUSER_ENABLE'] = 0
     parameters['RUSER_WIDTH'] = 1
+    parameters['AW_REG_TYPE'] = 1 if reg_type is None else reg_type
+    parameters['W_REG_TYPE'] = 2 if reg_type is None else reg_type
+    parameters['B_REG_TYPE'] = 1 if reg_type is None else reg_type
+    parameters['AR_REG_TYPE'] = 1 if reg_type is None else reg_type
+    parameters['R_REG_TYPE'] = 2 if reg_type is None else reg_type
 
     extra_env = {f'PARAM_{k}': str(v) for k, v in parameters.items()}
 
-    sim_build = os.path.join(tests_dir, "sim_build",
+    sim_build = os.path.join(tests_dir, "axi_register/sim_build",
                              request.node.name.replace('[', '-').replace(']', ''))
 
     cocotb_test.simulator.run(
