@@ -1,0 +1,5 @@
+cocotb
+cocotb_test
+cocotbext-axi
+myhdl
+pydevd-pycharm~=213.6461.77
