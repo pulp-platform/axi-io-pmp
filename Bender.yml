@@ -1,0 +1,18 @@
+package:
+  name: axi-io-pmp
+  authors:
+    - "Andreas Kuster <kustera@ethz.ch>"
+
+dependencies:
+  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.31.0 }
+
+export_include_dirs:
+  - include
+
+sources:
+  # packages
+  #- include/riscv.sv
+  # sources
+  #- src/pmp_entry.sv
+  #- src/pmp.sv
+  #
