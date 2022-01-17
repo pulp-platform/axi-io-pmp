@@ -1,14 +1,11 @@
 name: AXI IO-PMP Tests
-on:
-  pull_request:
-    branches: [master]
+on: [push]
 jobs:
-  test_pull_request:
+  tests:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          node-version: 12
       - run: |
           source setup_env.sh
           cd tb/
