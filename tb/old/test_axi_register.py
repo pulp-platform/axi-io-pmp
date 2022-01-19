@@ -84,6 +84,7 @@ async def run_test(dut, data_in=None, idle_inserter=None, backpressure_inserter=
 
             assert data.data == test_data
 
+
     await RisingEdge(dut.clk)
     await RisingEdge(dut.clk)
 
@@ -105,7 +106,7 @@ if cocotb.SIM_NAME:
 
 # cocotb-test
 tests_dir = os.path.abspath(os.path.dirname(__file__))
-rtl_dir = os.path.abspath(os.path.join(tests_dir, '', '../axi_reg', 'src'))
+rtl_dir = os.path.abspath(os.path.join(tests_dir, '', '../..', 'src'))
 
 
 @pytest.mark.parametrize("reg_type", [1])  # [None, 0, 1, 2]
@@ -122,7 +123,6 @@ def test_axi_register(request, data_width, reg_type):
     ]
 
     parameters = {}
-
     parameters['DATA_WIDTH'] = data_width
     parameters['ADDR_WIDTH'] = 32
     parameters['STRB_WIDTH'] = parameters['DATA_WIDTH'] // 8
