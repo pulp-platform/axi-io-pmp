@@ -1,5 +1,5 @@
 cocotb
 cocotb_test
-cocotbext-axi
+cocotbext-axi==0.1.18
 myhdl
 pydevd-pycharm~=213.6461.77

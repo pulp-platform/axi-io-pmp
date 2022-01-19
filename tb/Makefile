@@ -20,7 +20,7 @@
 
 TOPLEVEL_LANG = verilog
 
-SIM ?= icarus
+SIM ?= verilator
 WAVES ?= 0
 
 COCOTB_HDL_TIMEUNIT = 1ns
@@ -29,9 +29,21 @@ COCOTB_HDL_TIMEPRECISION = 1ps
 DUT      = axi_register
 TOPLEVEL = $(DUT)
 MODULE   = test_$(DUT)
-VERILOG_SOURCES += ../src/$(DUT).v
-VERILOG_SOURCES += ../src/$(DUT)_wr.v
-VERILOG_SOURCES += ../src/$(DUT)_rd.v
+# VERILOG_SOURCES += ../src/$(DUT).v
+# VERILOG_SOURCES += ../src/$(DUT)_wr.v
+# VERILOG_SOURCES += ../src/$(DUT)_rd.v
+
+VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
+
+VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
+VERILOG_SOURCES += ../src/axi/include/axi/typedef.svh
+
+
+VERILOG_SOURCES += ../src/axi/src/axi_pkg.sv
+VERILOG_SOURCES += ../src/axi/src/axi_cut.sv
+
+VERILOG_SOURCES += ../src/axi_conf.sv
+VERILOG_SOURCES += ../src/axi_register.v
 
 REG_TYPE ?= 2
 
@@ -57,7 +69,7 @@ export PARAM_AR_REG_TYPE ?= $(REG_TYPE)
 export PARAM_R_REG_TYPE ?= $(REG_TYPE)
 
 ifeq ($(SIM), icarus)
-	PLUSARGS += -fst
+	PLUSARGS += -fst -g
 
 	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(PARAM_DATA_WIDTH)
 	COMPILE_ARGS += -P $(TOPLEVEL).ADDR_WIDTH=$(PARAM_ADDR_WIDTH)
@@ -84,7 +96,7 @@ ifeq ($(SIM), icarus)
 		COMPILE_ARGS += -s iverilog_dump
 	endif
 else ifeq ($(SIM), verilator)
-	COMPILE_ARGS += -Wno-SELRANGE -Wno-WIDTH -Wno-CASEINCOMPLETE
+	COMPILE_ARGS += -Wno-SELRANGE -Wno-WIDTH -Wno-CASEINCOMPLETE -Wno-TIMESCALEMOD
 
 	COMPILE_ARGS += -GDATA_WIDTH=$(PARAM_DATA_WIDTH)
 	COMPILE_ARGS += -GADDR_WIDTH=$(PARAM_ADDR_WIDTH)
@@ -109,6 +121,7 @@ else ifeq ($(SIM), verilator)
 	ifeq ($(WAVES), 1)
 		COMPILE_ARGS += --trace-fst
 	endif
+
 endif
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
