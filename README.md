@@ -8,6 +8,13 @@ All relevant linux packages and the python virtual environment can be setup by c
 source setup_env.sh
 ```
 
+### Run Tests
+```bash
+cd tb/
+make
+```
+
+
 ### Frequenty Asked Questions
 
 #### Errors & Solutions

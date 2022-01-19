@@ -7,12 +7,20 @@ dependencies:
   axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.31.0 }
 
 export_include_dirs:
-  - include
+  - src/pmp/include
+  - src/axi/include
 
 sources:
+  ##########
   # packages
-  #- include/riscv.sv
-  # sources
-  #- src/pmp_entry.sv
-  #- src/pmp.sv
-  #
+  ##########
+  - src/pmp/include/riscv.sv
+  ##########
+  # Sources
+  ##########
+  # Common
+  - src/common/axi_master_connect.sv
+  - src/common/axi_slave_connect.sv
+  # PMP
+  - src/pmp/pmp_entry.sv
+  - src/pmp/pmp.sv

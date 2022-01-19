@@ -1,5 +1,5 @@
 name: AXI IO-PMP Tests
-on: [push]
+on: [push, pull_request]
 jobs:
   tests:
     name: Test

@@ -44,6 +44,7 @@ class TB(object):
         self.log.setLevel(logging.DEBUG)
 
         cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+        #cocotb.fork(Clock(dut.clk, 10, units="ns").start()) # older version
 
         self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
         self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "m_axi"), dut.clk, dut.rst, size=2 ** 16)
@@ -117,9 +118,20 @@ def test_axi_register(request, data_width, reg_type):
     toplevel = dut
 
     verilog_sources = [
-        os.path.join(rtl_dir, f"{dut}.v"),
-        os.path.join(rtl_dir, f"{dut}_rd.v"),
-        os.path.join(rtl_dir, f"{dut}_wr.v"),
+        # os.path.join(rtl_dir, f"{dut}.v"),
+        # os.path.join(rtl_dir, f"{dut}_rd.v"),
+        # os.path.join(rtl_dir, f"{dut}_wr.v"),
+
+        os.path.join(rtl_dir, "axi/src/axi_pkg.sv"),
+
+        os.path.join(rtl_dir, "axi_conf.sv"),
+
+        os.path.join(rtl_dir, "axi_register.v"),
+        # os.path.join(rtl_dir, ""),
+        # os.path.join(rtl_dir, ""),
+        # os.path.join(rtl_dir, ""),
+        # os.path.join(rtl_dir, ""),
+        # os.path.join(rtl_dir, ""),
     ]
 
     parameters = {}
