@@ -101,7 +101,7 @@ if cocotb.SIM_NAME:
 
     for test in [run_test]:
         factory = TestFactory(test)
-        factory.add_option("size", [None] + list(range(max_burst_size)))
+        #factory.add_option("size", [None] + list(range(max_burst_size)))
         factory.generate_tests()
 
 # cocotb-test
