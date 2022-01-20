@@ -1,22 +1,32 @@
+// Copyright 2022 ETH Zurich and University of Bologna.
+// Copyright and related rights are licensed under the Solderpad Hardware
+// License, Version 0.51 (the "License"); you may not use this file except in
+// compliance with the License.  You may obtain a copy of the License at
+// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
+// or agreed to in writing, software, hardware and materials distributed under
+// this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+//
+// Author:      Florian Zaruba <zarubaf@iis.ee.ethz.ch>
+//              Andreas Kuster, <kustera@ethz.ch>
+// Description: Minimal AXI config (adapted from openhwgroup:cva6 ariane_axi_soc_pkg.sv)
+
 package axi_conf;
 
-    // used in axi_adapter.sv
-    typedef enum logic { SINGLE_REQ, CACHE_LINE_REQ } ad_req_t;
-
-    localparam UserWidth = 1;
-    localparam AddrWidth = 32;
-    localparam DataWidth = 32;
-    localparam StrbWidth = DataWidth / 8;
-    localparam IdWidth = 8;
+    localparam UserWidth    = 1;
+    localparam AddrWidth    = 32;
+    localparam DataWidth    = 32;
+    localparam StrbWidth    = DataWidth / 8;
+    localparam IdWidth      = 8;
     localparam IdWidthSlave = IdWidth;
-
 
     typedef logic [IdWidth-1:0]      id_t;
     typedef logic [IdWidthSlave-1:0] id_slv_t;
-    typedef logic [AddrWidth-1:0] addr_t;
-    typedef logic [DataWidth-1:0] data_t;
-    typedef logic [StrbWidth-1:0] strb_t;
-    typedef logic [UserWidth-1:0] user_t;
+    typedef logic [AddrWidth-1:0]    addr_t;
+    typedef logic [DataWidth-1:0]    data_t;
+    typedef logic [StrbWidth-1:0]    strb_t;
+    typedef logic [UserWidth-1:0]    user_t;
 
     // AW Channel
     typedef struct packed {
@@ -164,4 +174,3 @@ package axi_conf;
     } resp_slv_t;
 
 endpackage
-
