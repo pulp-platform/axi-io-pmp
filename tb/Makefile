@@ -29,21 +29,19 @@ COCOTB_HDL_TIMEPRECISION = 1ps
 DUT      = axi_register
 TOPLEVEL = $(DUT)
 MODULE   = test_$(DUT)
-# VERILOG_SOURCES += ../src/$(DUT).v
-# VERILOG_SOURCES += ../src/$(DUT)_wr.v
-# VERILOG_SOURCES += ../src/$(DUT)_rd.v
-
-VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
-
-VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
-VERILOG_SOURCES += ../src/axi/include/axi/typedef.svh
 
 
-VERILOG_SOURCES += ../src/axi/src/axi_pkg.sv
-VERILOG_SOURCES += ../src/axi/src/axi_cut.sv
+VERILOG_SOURCES += ../src/$(DUT).v
+VERILOG_SOURCES += ../src/$(DUT)_wr.v
+VERILOG_SOURCES += ../src/$(DUT)_rd.v
 
-VERILOG_SOURCES += ../src/axi_conf.sv
-VERILOG_SOURCES += ../src/axi_register.v
+# VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
+# VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
+# VERILOG_SOURCES += ../src/axi/include/axi/typedef.svh
+# VERILOG_SOURCES += ../src/axi/src/axi_pkg.sv
+# VERILOG_SOURCES += ../src/axi/src/axi_cut.sv
+# VERILOG_SOURCES += ../src/axi_conf.sv
+# VERILOG_SOURCES += ../src/axi_register.v
 
 REG_TYPE ?= 1
 

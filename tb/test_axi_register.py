@@ -38,13 +38,18 @@ from cocotbext.axi import AxiBus, AxiMaster, AxiRam
 class TB(object):
 
     def __init__(self, dut):
+
+
+        import pydevd_pycharm
+        pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True,
+                                stderrToServer=True)
+
         self.dut = dut
 
         self.log = logging.getLogger("cocotb.tb")
         self.log.setLevel(logging.DEBUG)
 
         cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
-        #cocotb.fork(Clock(dut.clk, 10, units="ns").start()) # older version
 
         self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
         self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "m_axi"), dut.clk, dut.rst, size=2 ** 16)
@@ -118,21 +123,22 @@ def test_axi_register(request, data_width, reg_type):
     toplevel = dut
 
     verilog_sources = [
-        # os.path.join(rtl_dir, f"{dut}.v"),
-        # os.path.join(rtl_dir, f"{dut}_rd.v"),
-        # os.path.join(rtl_dir, f"{dut}_wr.v"),
-
-        os.path.join(rtl_dir, "axi/src/axi_pkg.sv"),
-
-        os.path.join(rtl_dir, "axi_conf.sv"),
-
-        os.path.join(rtl_dir, "axi_register.v"),
-        # os.path.join(rtl_dir, ""),
-        # os.path.join(rtl_dir, ""),
-        # os.path.join(rtl_dir, ""),
-        # os.path.join(rtl_dir, ""),
-        # os.path.join(rtl_dir, ""),
+        os.path.join(rtl_dir, f"{dut}.v"),
+        os.path.join(rtl_dir, f"{dut}_rd.v"),
+        os.path.join(rtl_dir, f"{dut}_wr.v")
     ]
+
+    # VERILOG_SOURCES +=../ src /$(DUT).v
+    # VERILOG_SOURCES +=../ src /$(DUT)_wr.v
+    # VERILOG_SOURCES +=../ src /$(DUT)_rd.v
+
+    # VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
+    # VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
+    # VERILOG_SOURCES += ../src/axi/include/axi/typedef.svh
+    # VERILOG_SOURCES += ../src/axi/src/axi_pkg.sv
+    # VERILOG_SOURCES += ../src/axi/src/axi_cut.sv
+    # VERILOG_SOURCES += ../src/axi_conf.sv
+    # VERILOG_SOURCES += ../src/axi_register.v
 
     parameters = {}
     parameters['DATA_WIDTH'] = data_width
@@ -159,13 +165,28 @@ def test_axi_register(request, data_width, reg_type):
 
     sim_build = os.path.join(tests_dir, "axi_register/sim_build",
                              request.node.name.replace('[', '-').replace(']', ''))
-
-    cocotb_test.simulator.run(
-        python_search=[tests_dir],
-        verilog_sources=verilog_sources,
+    sim = cocotb_test.simulator.Verilator(
         toplevel=toplevel,
-        module=module,
-        parameters=parameters,
-        sim_build=sim_build,
-        extra_env=extra_env,
+        module=module
     )
+
+    sim.python_search = [tests_dir]
+
+    sim.verilog_sources = verilog_sources
+    sim.toplevel=toplevel
+    sim.module=module
+    sim.parameters=parameters
+    sim.sim_build=sim_build
+    sim.extra_env=extra_env
+
+    sim.run()
+
+    # cocotb_test.simulator.run(
+    #     python_search=[tests_dir],
+    #     verilog_sources=verilog_sources,
+    #     toplevel=toplevel,
+    #     module=module,
+    #     parameters=parameters,
+    #     sim_build=sim_build,
+    #     extra_env=extra_env
+    # )
