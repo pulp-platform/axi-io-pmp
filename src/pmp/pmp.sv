@@ -12,6 +12,8 @@
 // Date: 2.10.2019
 // Description: purely combinatorial PMP unit (with extraction for more complex configs such as NAPOT)
 
+`timescale 1ns / 1ps
+
 module pmp #(
     parameter int unsigned PLEN = 34,       // rv64: 56
     parameter int unsigned PMP_LEN = 32,    // rv64: 54
