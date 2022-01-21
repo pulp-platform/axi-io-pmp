@@ -1,4 +1,6 @@
-# RISC-V AXI IO-PMP
+[![AXI IO-PMP Tests](https://github.com/andreaskuster/axi-io-pmp/actions/workflows/main.yml/badge.svg)](https://github.com/andreaskuster/axi-io-pmp/actions/workflows/main.yml)
+
+# RISC-V AXI IO-PMP 
 TODO: add description
 
 
@@ -9,13 +11,26 @@ source setup_env.sh
 ```
 
 ### Run Tests
+Pytest:
 ```bash
-cd tb/
-make
+pytest tb/
+```
+
+Show waveform of the simulation:
+```bash
+gtkwave tb/axi_io_pmp.vcd
 ```
 
 
-### Frequenty Asked Questions
+### Modules List
+
+| Name                                                         | Description |
+|--------------------------------------------------------------|-------------|
+| [`axi_master_connector`](src/connector/axi_master_connector.v) |             |
+| [`axi_slave_connector`](src/connector/axi_slave_connector.v)   |             |
+
+
+### Frequently Asked Questions
 
 #### Errors & Solutions
 
