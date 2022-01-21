@@ -34,67 +34,67 @@ module axi_master_connector #(
     /*
      * Write address channel
      */
-    output wire [ID_WIDTH-1:0]      m_axi_awid,
-    output wire [ADDR_WIDTH-1:0]    m_axi_awaddr,
-    output wire [7:0]               m_axi_awlen,
-    output wire [2:0]               m_axi_awsize,
-    output wire [1:0]               m_axi_awburst,
-    output wire                     m_axi_awlock,
-    output wire [3:0]               m_axi_awcache,
-    output wire [2:0]               m_axi_awprot,
-    output wire [3:0]               m_axi_awqos,
-    output wire [3:0]               m_axi_awregion,
-    output wire [AWUSER_WIDTH-1:0]  m_axi_awuser,
-    output wire                     m_axi_awvalid,
-    input  wire                     m_axi_awready,
+    output [ID_WIDTH-1:0]      m_axi_awid,
+    output [ADDR_WIDTH-1:0]    m_axi_awaddr,
+    output [7:0]               m_axi_awlen,
+    output [2:0]               m_axi_awsize,
+    output [1:0]               m_axi_awburst,
+    output                     m_axi_awlock,
+    output [3:0]               m_axi_awcache,
+    output [2:0]               m_axi_awprot,
+    output [3:0]               m_axi_awqos,
+    output [3:0]               m_axi_awregion,
+    output [AWUSER_WIDTH-1:0]  m_axi_awuser,
+    output                     m_axi_awvalid,
+    input                      m_axi_awready,
     /*
      * Write data channel
      */
-    output wire [DATA_WIDTH-1:0]    m_axi_wdata,
-    output wire [STRB_WIDTH-1:0]    m_axi_wstrb,
-    output wire                     m_axi_wlast,
-    output wire [WUSER_WIDTH-1:0]   m_axi_wuser,
-    output wire                     m_axi_wvalid,
-    input  wire                     m_axi_wready,
+    output [DATA_WIDTH-1:0]    m_axi_wdata,
+    output [STRB_WIDTH-1:0]    m_axi_wstrb,
+    output                     m_axi_wlast,
+    output [WUSER_WIDTH-1:0]   m_axi_wuser,
+    output                     m_axi_wvalid,
+    input                      m_axi_wready,
     /*
      * Write response channel
      */
-    input  wire [ID_WIDTH-1:0]      m_axi_bid,
-    input  wire [1:0]               m_axi_bresp,
-    input  wire [BUSER_WIDTH-1:0]   m_axi_buser,
-    input  wire                     m_axi_bvalid,
-    output wire                     m_axi_bready,
+    input  [ID_WIDTH-1:0]      m_axi_bid,
+    input  [1:0]               m_axi_bresp,
+    input  [BUSER_WIDTH-1:0]   m_axi_buser,
+    input                      m_axi_bvalid,
+    output                     m_axi_bready,
     /*
      * Read address channel
      */
-    output wire [ID_WIDTH-1:0]      m_axi_arid,
-    output wire [ADDR_WIDTH-1:0]    m_axi_araddr,
-    output wire [7:0]               m_axi_arlen,
-    output wire [2:0]               m_axi_arsize,
-    output wire [1:0]               m_axi_arburst,
-    output wire                     m_axi_arlock,
-    output wire [3:0]               m_axi_arcache,
-    output wire [2:0]               m_axi_arprot,
-    output wire [3:0]               m_axi_arqos,
-    output wire [3:0]               m_axi_arregion,
-    output wire [ARUSER_WIDTH-1:0]  m_axi_aruser,
-    output wire                     m_axi_arvalid,
-    input  wire                     m_axi_arready,
+    output [ID_WIDTH-1:0]      m_axi_arid,
+    output [ADDR_WIDTH-1:0]    m_axi_araddr,
+    output [7:0]               m_axi_arlen,
+    output [2:0]               m_axi_arsize,
+    output [1:0]               m_axi_arburst,
+    output                     m_axi_arlock,
+    output [3:0]               m_axi_arcache,
+    output [2:0]               m_axi_arprot,
+    output [3:0]               m_axi_arqos,
+    output [3:0]               m_axi_arregion,
+    output [ARUSER_WIDTH-1:0]  m_axi_aruser,
+    output                     m_axi_arvalid,
+    input                      m_axi_arready,
     /*
      * Read data channel
      */
-    input  wire [ID_WIDTH-1:0]      m_axi_rid,
-    input  wire [DATA_WIDTH-1:0]    m_axi_rdata,
-    input  wire [1:0]               m_axi_rresp,
-    input  wire                     m_axi_rlast,
-    input  wire [RUSER_WIDTH-1:0]   m_axi_ruser,
-    input  wire                     m_axi_rvalid,
-    output wire                     m_axi_rready,
+    input  [ID_WIDTH-1:0]      m_axi_rid,
+    input  [DATA_WIDTH-1:0]    m_axi_rdata,
+    input  [1:0]               m_axi_rresp,
+    input                      m_axi_rlast,
+    input  [RUSER_WIDTH-1:0]   m_axi_ruser,
+    input                      m_axi_rvalid,
+    output                     m_axi_rready,
     /*
      * AXI request/response pair
      */
-    input  ariane_axi::req_t        axi_req_i,
-    output ariane_axi::resp_t       axi_resp_o
+    input  axi_conf::req_t     axi_req_i,
+    output axi_conf::resp_t    axi_resp_o
     );
 
     /*
@@ -121,7 +121,7 @@ module axi_master_connector #(
     assign m_axi_wdata        = axi_req_i.w.data;
     assign m_axi_wstrb        = axi_req_i.w.strb;
     assign m_axi_wlast        = axi_req_i.w.last;
-    assign m_axi_wuser        = '0;
+    assign m_axi_wuser        = axi_req_i.w.user;
     assign m_axi_wvalid       = axi_req_i.w_valid;
     assign axi_resp_o.w_ready = m_axi_wready;
 
