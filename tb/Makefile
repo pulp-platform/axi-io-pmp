@@ -1,39 +1,20 @@
-# Copyright (c) 2020 Alex Forencich
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
 
 TOPLEVEL_LANG = verilog
 
-SIM ?= verilator
+SIM ?= icarus # verilator
 WAVES ?= 0
 
 COCOTB_HDL_TIMEUNIT = 1ns
 COCOTB_HDL_TIMEPRECISION = 1ps
 
-DUT      = axi_register
+DUT      = axi_io_pmp
 TOPLEVEL = $(DUT)
 MODULE   = test_$(DUT)
 
 
 VERILOG_SOURCES += ../src/$(DUT).v
-VERILOG_SOURCES += ../src/$(DUT)_wr.v
-VERILOG_SOURCES += ../src/$(DUT)_rd.v
+VERILOG_SOURCES += ../src/axi_register/axi_register_wr.v
+VERILOG_SOURCES += ../src/axi_register/axi_register_rd.v
 
 # VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
 # VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
@@ -43,7 +24,7 @@ VERILOG_SOURCES += ../src/$(DUT)_rd.v
 # VERILOG_SOURCES += ../src/axi_conf.sv
 # VERILOG_SOURCES += ../src/axi_register.v
 
-REG_TYPE ?= 1
+REG_TYPE ?= 1 # {Bypass = 0, Registered = 1, Skid Buffer = 2}
 
 # module parameters
 export PARAM_DATA_WIDTH ?= 32
@@ -67,7 +48,9 @@ export PARAM_AR_REG_TYPE ?= $(REG_TYPE)
 export PARAM_R_REG_TYPE ?= $(REG_TYPE)
 
 ifeq ($(SIM), icarus)
+
 	PLUSARGS += -fst -g
+
 
 	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(PARAM_DATA_WIDTH)
 	COMPILE_ARGS += -P $(TOPLEVEL).ADDR_WIDTH=$(PARAM_ADDR_WIDTH)
@@ -93,6 +76,7 @@ ifeq ($(SIM), icarus)
 		VERILOG_SOURCES += iverilog_dump.v
 		COMPILE_ARGS += -s iverilog_dump
 	endif
+	
 else ifeq ($(SIM), verilator)
 	COMPILE_ARGS += -Wno-SELRANGE -Wno-WIDTH -Wno-CASEINCOMPLETE -Wno-TIMESCALEMOD
 
@@ -132,7 +116,20 @@ iverilog_dump.v:
 	echo 'end' >> $@
 	echo 'endmodule' >> $@
 
+
+# Profiling
+DOT_BINARY ?= dot
+
+test_profile.pstat: sim
+
+callgraph.svg: test_profile.pstat
+	$(shell cocotb-config --python-bin) -m gprof2dot -f pstats ./$< | $(DOT_BINARY) -Tsvg -o $@
+
+profile:
+	COCOTB_ENABLE_PROFILING=1 $(MAKE) callgraph.svg
+
 clean::
 	@rm -rf iverilog_dump.v
 	@rm -rf dump.fst $(TOPLEVEL).fst
-	@rm -rf results.xml
+	@rm -rf results.xml __pycache__
+	@rm -rf callgraph.svg test_profile.pstat
