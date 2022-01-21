@@ -11,6 +11,12 @@
 // Author:      Andreas Kuster, <kustera@ethz.ch>
 // Description: Traditional style AXI IO-PMP module
 
+
+`timescale 1ns / 1ps
+
+`include "riscv.sv"
+`include "cf_math_pkg.sv"
+
 module axi_io_pmp #(
     // Width of data bus in bits
     parameter DATA_WIDTH    = 32,
@@ -40,6 +46,8 @@ module axi_io_pmp #(
     parameter RUSER_ENABLE  = 0,
     // Width of ruser signal
     parameter RUSER_WIDTH   = 1,
+    // register type { Bypass = 0, Registered = 1, Skid Buffer = 2}
+    parameter REG_TYPE      = 1,
     // Waveform generation {Off=0, On=1}
     parameter WAVES         = 0
 ) (
@@ -143,162 +151,201 @@ module axi_io_pmp #(
     input                    s_axi_rready
 );
 
-    localparam REG_TYPE = 1; // {Bypass = 0, Registered = 1, Skid Buffer = 2}
+    localparam REG_TYPE = 1; // { Bypass = 0, Registered = 1, Skid Buffer = 2}
 
+    localparam PLEN = 56;
+    localparam PMP_LEN = 54;
+    localparam NR_ENTRIES = 1;
 
+   `ifdef VERILATOR
 
+    assert property(@(posedge clk) ADDR_WIDTH == 32 | ADDR_WIDTH == 64 ); // we only support ADDR_WIDTH in {32, 64}
 
+    logic [15:0][PLEN-1:0] cfg_addr_reg;
+    riscv::pmpcfg_t [15:0] cfg_reg;
 
+    wire pmp_allow;
 
+    initial begin
+        // reset all entries
+        for (int i = 0; i < 16; i = i + 1) begin
+            cfg_addr_reg = '0;
+            cfg_reg[i] = '0;
+        end 
 
-
-axi_register_wr #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .STRB_WIDTH(STRB_WIDTH),
-    .ID_WIDTH(ID_WIDTH),
-    .AWUSER_ENABLE(AWUSER_ENABLE),
-    .AWUSER_WIDTH(AWUSER_WIDTH),
-    .WUSER_ENABLE(WUSER_ENABLE),
-    .WUSER_WIDTH(WUSER_WIDTH),
-    .BUSER_ENABLE(BUSER_ENABLE),
-    .BUSER_WIDTH(BUSER_WIDTH),
-
-    .AW_REG_TYPE(REG_TYPE),
-    .W_REG_TYPE(REG_TYPE),
-    .B_REG_TYPE(REG_TYPE)
-)
-axi_register_wr_inst (
-    .clk(clk),
-    .rst(rst),
-
-    /*
-     * AXI slave interface
-     */
-    .s_axi_awid(s_axi_awid),
-    .s_axi_awaddr(s_axi_awaddr),
-    .s_axi_awlen(s_axi_awlen),
-    .s_axi_awsize(s_axi_awsize),
-    .s_axi_awburst(s_axi_awburst),
-    .s_axi_awlock(s_axi_awlock),
-    .s_axi_awcache(s_axi_awcache),
-    .s_axi_awprot(s_axi_awprot),
-    .s_axi_awqos(s_axi_awqos),
-    .s_axi_awregion(s_axi_awregion),
-    .s_axi_awuser(s_axi_awuser),
-    .s_axi_awvalid(s_axi_awvalid),
-    .s_axi_awready(s_axi_awready),
-    .s_axi_wdata(s_axi_wdata),
-    .s_axi_wstrb(s_axi_wstrb),
-    .s_axi_wlast(s_axi_wlast),
-    .s_axi_wuser(s_axi_wuser),
-    .s_axi_wvalid(s_axi_wvalid),
-    .s_axi_wready(s_axi_wready),
-    .s_axi_bid(s_axi_bid),
-    .s_axi_bresp(s_axi_bresp),
-    .s_axi_buser(s_axi_buser),
-    .s_axi_bvalid(s_axi_bvalid),
-    .s_axi_bready(s_axi_bready),
-
-    /*
-     * AXI master interface
-     */
-    .m_axi_awid(m_axi_awid),
-    .m_axi_awaddr(m_axi_awaddr),
-    .m_axi_awlen(m_axi_awlen),
-    .m_axi_awsize(m_axi_awsize),
-    .m_axi_awburst(m_axi_awburst),
-    .m_axi_awlock(m_axi_awlock),
-    .m_axi_awcache(m_axi_awcache),
-    .m_axi_awprot(m_axi_awprot),
-    .m_axi_awqos(m_axi_awqos),
-    .m_axi_awregion(m_axi_awregion),
-    .m_axi_awuser(m_axi_awuser),
-    .m_axi_awvalid(m_axi_awvalid),
-    .m_axi_awready(m_axi_awready),
-    .m_axi_wdata(m_axi_wdata),
-    .m_axi_wstrb(m_axi_wstrb),
-    .m_axi_wlast(m_axi_wlast),
-    .m_axi_wuser(m_axi_wuser),
-    .m_axi_wvalid(m_axi_wvalid),
-    .m_axi_wready(m_axi_wready),
-    .m_axi_bid(m_axi_bid),
-    .m_axi_bresp(m_axi_bresp),
-    .m_axi_buser(m_axi_buser),
-    .m_axi_bvalid(m_axi_bvalid),
-    .m_axi_bready(m_axi_bready)
-);
-
-axi_register_rd #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .ADDR_WIDTH(ADDR_WIDTH),
-    .STRB_WIDTH(STRB_WIDTH),
-    .ID_WIDTH(ID_WIDTH),
-    .ARUSER_ENABLE(ARUSER_ENABLE),
-    .ARUSER_WIDTH(ARUSER_WIDTH),
-    .RUSER_ENABLE(RUSER_ENABLE),
-    .RUSER_WIDTH(RUSER_WIDTH),
-    .AR_REG_TYPE(REG_TYPE),
-    .R_REG_TYPE(REG_TYPE)
-)
-axi_register_rd_inst (
-    .clk(clk),
-    .rst(rst),
-
-    /*
-     * AXI slave interface
-     */
-    .s_axi_arid(s_axi_arid),
-    .s_axi_araddr(s_axi_araddr),
-    .s_axi_arlen(s_axi_arlen),
-    .s_axi_arsize(s_axi_arsize),
-    .s_axi_arburst(s_axi_arburst),
-    .s_axi_arlock(s_axi_arlock),
-    .s_axi_arcache(s_axi_arcache),
-    .s_axi_arprot(s_axi_arprot),
-    .s_axi_arqos(s_axi_arqos),
-    .s_axi_arregion(s_axi_arregion),
-    .s_axi_aruser(s_axi_aruser),
-    .s_axi_arvalid(s_axi_arvalid),
-    .s_axi_arready(s_axi_arready),
-    .s_axi_rid(s_axi_rid),
-    .s_axi_rdata(s_axi_rdata),
-    .s_axi_rresp(s_axi_rresp),
-    .s_axi_rlast(s_axi_rlast),
-    .s_axi_ruser(s_axi_ruser),
-    .s_axi_rvalid(s_axi_rvalid),
-    .s_axi_rready(s_axi_rready),
-
-    /*
-     * AXI master interface
-     */
-    .m_axi_arid(m_axi_arid),
-    .m_axi_araddr(m_axi_araddr),
-    .m_axi_arlen(m_axi_arlen),
-    .m_axi_arsize(m_axi_arsize),
-    .m_axi_arburst(m_axi_arburst),
-    .m_axi_arlock(m_axi_arlock),
-    .m_axi_arcache(m_axi_arcache),
-    .m_axi_arprot(m_axi_arprot),
-    .m_axi_arqos(m_axi_arqos),
-    .m_axi_arregion(m_axi_arregion),
-    .m_axi_aruser(m_axi_aruser),
-    .m_axi_arvalid(m_axi_arvalid),
-    .m_axi_arready(m_axi_arready),
-    .m_axi_rid(m_axi_rid),
-    .m_axi_rdata(m_axi_rdata),
-    .m_axi_rresp(m_axi_rresp),
-    .m_axi_rlast(m_axi_rlast),
-    .m_axi_ruser(m_axi_ruser),
-    .m_axi_rvalid(m_axi_rvalid),
-    .m_axi_rready(m_axi_rready)
-);
-
-initial begin
-    if(WAVES == 1) begin
-        $dumpfile("axi_io_pmp.vcd");
-        $dumpvars(0, axi_io_pmp);
+        // setup first entry
+        // TODO
     end
-end
+
+    pmp #(
+        .PLEN(PLEN),       // rv64: 56
+        .PMP_LEN(PMP_LEN),    // rv64: 54
+        .NR_ENTRIES(NR_ENTRIES)
+    ) pmp0 (
+        // Input
+        .addr_i(s_axi_araddr[PLEN-1:0]), // [PLEN-1:0]
+        .access_type_i(riscv::ACCESS_READ), // riscv::pmp_access_t
+        .priv_lvl_i(riscv::PRIV_LVL_M), // riscv::priv_lvl_t
+        // Configuration
+        .conf_addr_i(cfg_addr_reg), // [15:0][PMP_LEN-1:0] 
+        .conf_i(cfg_reg), // riscv::pmpcfg_t [15:0]
+        // Output
+        .allow_o(pmp_allow)
+    );
+
+
+    `endif
+
+    axi_register_wr #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .STRB_WIDTH(STRB_WIDTH),
+        .ID_WIDTH(ID_WIDTH),
+        .AWUSER_ENABLE(AWUSER_ENABLE),
+        .AWUSER_WIDTH(AWUSER_WIDTH),
+        .WUSER_ENABLE(WUSER_ENABLE),
+        .WUSER_WIDTH(WUSER_WIDTH),
+        .BUSER_ENABLE(BUSER_ENABLE),
+        .BUSER_WIDTH(BUSER_WIDTH),
+
+        .AW_REG_TYPE(REG_TYPE),
+        .W_REG_TYPE(REG_TYPE),
+        .B_REG_TYPE(REG_TYPE)
+    )
+    axi_register_wr_inst (
+        .clk(clk),
+        .rst(rst),
+
+        /*
+        * AXI slave interface
+        */
+        .s_axi_awid(s_axi_awid),
+        .s_axi_awaddr(s_axi_awaddr),
+        .s_axi_awlen(s_axi_awlen),
+        .s_axi_awsize(s_axi_awsize),
+        .s_axi_awburst(s_axi_awburst),
+        .s_axi_awlock(s_axi_awlock),
+        .s_axi_awcache(s_axi_awcache),
+        .s_axi_awprot(s_axi_awprot),
+        .s_axi_awqos(s_axi_awqos),
+        .s_axi_awregion(s_axi_awregion),
+        .s_axi_awuser(s_axi_awuser),
+        .s_axi_awvalid(s_axi_awvalid),
+        .s_axi_awready(s_axi_awready),
+        .s_axi_wdata(s_axi_wdata),
+        .s_axi_wstrb(s_axi_wstrb),
+        .s_axi_wlast(s_axi_wlast),
+        .s_axi_wuser(s_axi_wuser),
+        .s_axi_wvalid(s_axi_wvalid),
+        .s_axi_wready(s_axi_wready),
+        .s_axi_bid(s_axi_bid),
+        .s_axi_bresp(s_axi_bresp),
+        .s_axi_buser(s_axi_buser),
+        .s_axi_bvalid(s_axi_bvalid),
+        .s_axi_bready(s_axi_bready),
+
+        /*
+        * AXI master interface
+        */
+        .m_axi_awid(m_axi_awid),
+        .m_axi_awaddr(m_axi_awaddr),
+        .m_axi_awlen(m_axi_awlen),
+        .m_axi_awsize(m_axi_awsize),
+        .m_axi_awburst(m_axi_awburst),
+        .m_axi_awlock(m_axi_awlock),
+        .m_axi_awcache(m_axi_awcache),
+        .m_axi_awprot(m_axi_awprot),
+        .m_axi_awqos(m_axi_awqos),
+        .m_axi_awregion(m_axi_awregion),
+        .m_axi_awuser(m_axi_awuser),
+        .m_axi_awvalid(m_axi_awvalid),
+        .m_axi_awready(m_axi_awready),
+        .m_axi_wdata(m_axi_wdata),
+        .m_axi_wstrb(m_axi_wstrb),
+        .m_axi_wlast(m_axi_wlast),
+        .m_axi_wuser(m_axi_wuser),
+        .m_axi_wvalid(m_axi_wvalid),
+        .m_axi_wready(m_axi_wready),
+        .m_axi_bid(m_axi_bid),
+        .m_axi_bresp(m_axi_bresp),
+        .m_axi_buser(m_axi_buser),
+        .m_axi_bvalid(m_axi_bvalid),
+        .m_axi_bready(m_axi_bready)
+    );
+
+    axi_register_rd #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .STRB_WIDTH(STRB_WIDTH),
+        .ID_WIDTH(ID_WIDTH),
+        .ARUSER_ENABLE(ARUSER_ENABLE),
+        .ARUSER_WIDTH(ARUSER_WIDTH),
+        .RUSER_ENABLE(RUSER_ENABLE),
+        .RUSER_WIDTH(RUSER_WIDTH),
+        .AR_REG_TYPE(REG_TYPE),
+        .R_REG_TYPE(REG_TYPE)
+    )
+    axi_register_rd_inst (
+        .clk(clk),
+        .rst(rst),
+
+        /*
+        * AXI slave interface
+        */
+        .s_axi_arid(s_axi_arid),
+        .s_axi_araddr(s_axi_araddr),
+        .s_axi_arlen(s_axi_arlen),
+        .s_axi_arsize(s_axi_arsize),
+        .s_axi_arburst(s_axi_arburst),
+        .s_axi_arlock(s_axi_arlock),
+        .s_axi_arcache(s_axi_arcache),
+        .s_axi_arprot(s_axi_arprot),
+        .s_axi_arqos(s_axi_arqos),
+        .s_axi_arregion(s_axi_arregion),
+        .s_axi_aruser(s_axi_aruser),
+        .s_axi_arvalid(s_axi_arvalid),
+        .s_axi_arready(s_axi_arready),
+        .s_axi_rid(s_axi_rid),
+        .s_axi_rdata(s_axi_rdata),
+        .s_axi_rresp(s_axi_rresp),
+        .s_axi_rlast(s_axi_rlast),
+        .s_axi_ruser(s_axi_ruser),
+        .s_axi_rvalid(s_axi_rvalid),
+        .s_axi_rready(s_axi_rready),
+
+        /*
+        * AXI master interface
+        */
+        .m_axi_arid(m_axi_arid),
+        .m_axi_araddr(m_axi_araddr),
+        .m_axi_arlen(m_axi_arlen),
+        .m_axi_arsize(m_axi_arsize),
+        .m_axi_arburst(m_axi_arburst),
+        .m_axi_arlock(m_axi_arlock),
+        .m_axi_arcache(m_axi_arcache),
+        .m_axi_arprot(m_axi_arprot),
+        .m_axi_arqos(m_axi_arqos),
+        .m_axi_arregion(m_axi_arregion),
+        .m_axi_aruser(m_axi_aruser),
+        .m_axi_arvalid(m_axi_arvalid),
+        .m_axi_arready(m_axi_arready),
+        .m_axi_rid(m_axi_rid),
+        .m_axi_rdata(m_axi_rdata),
+        .m_axi_rresp(m_axi_rresp),
+        .m_axi_rlast(m_axi_rlast),
+        .m_axi_ruser(m_axi_ruser),
+        .m_axi_rvalid(m_axi_rvalid),
+        .m_axi_rready(m_axi_rready)
+    );
+
+    /*
+     * Simulation/Debugging
+     */
+    initial begin
+        if(WAVES == 1) begin
+            $dumpfile("axi_io_pmp.vcd");
+            $dumpvars(0, axi_io_pmp);
+        end
+    end
 
 endmodule
