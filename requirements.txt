@@ -1,5 +1,6 @@
-cocotb
-cocotb_test
+cocotb==1.6.1
+cocotb_test==0.2.1
 cocotbext-axi==0.1.18
 myhdl
+gprof2dot
 pydevd-pycharm~=213.6461.77
