@@ -1,3 +1,5 @@
 python3-virtualenv
 iverilog
 verilator-4.106
+dot
+gtkwave
