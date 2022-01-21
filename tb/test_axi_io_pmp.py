@@ -53,9 +53,13 @@ async def run_test(dut):
     # write data to RAM (in order to have a deterministic value to read)
     addr = 0x0000
     length = 8
-    test_data = bytearray([x % 256 for x in range(length)])
-    tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex("_", 1))
+    test_data = bytearray([x % 2**8 for x in range(length)])
+    tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())#("_", 1))
     tb.axi_ram.write(addr, test_data)
+
+
+    #asdf = dut.axi_io_pmp.rst
+    #tb.log.info("TEST: rst %d", asdf)
 
     # read data through the IO-PMP
     data = await tb.axi_master.read(addr, length)
@@ -78,14 +82,15 @@ if cocotb.SIM_NAME:
 
 @pytest.mark.parametrize("reg_type", [1])  # [None, 0, 1, 2]
 @pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64]
-def test_axi_io_pmp(request, data_width, reg_type):
+@pytest.mark.parametrize("addr_width", [64])  # [8, 16, 32, 64]
+def test_axi_io_pmp(request, addr_width, data_width, reg_type):
     # extract & setup relevant information
     dut = "axi_io_pmp"
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     src_dir = os.path.abspath(os.path.join(tests_dir, '..', 'src'))
-    simulator = "icarus"
+    simulator = "verilator"
 
     # verilog source list
     verilog_sources = [
@@ -95,7 +100,12 @@ def test_axi_io_pmp(request, data_width, reg_type):
         "axi_register/axi_register.v",
         "axi_register/axi_register_rd.v",
         "axi_register/axi_register_wr.v",
+        # pmp sources
+        #"pmp/include/riscv.sv",
+        "pmp/pmp_entry.sv",
+        "pmp/pmp.sv",
         # # pulp-platform source
+        "common_cells/src/lzc.sv",
         # "axi/include/axi/assign.svh",
         # "axi/include/axi/typedef.svh",
         # "common_cells/src/spill_register.sv",
@@ -118,7 +128,7 @@ def test_axi_io_pmp(request, data_width, reg_type):
     # AXI parameters
     parameters = {
         'DATA_WIDTH': data_width,
-        'ADDR_WIDTH': 32,
+        'ADDR_WIDTH': addr_width,
         'STRB_WIDTH': data_width // 8,
         'ID_WIDTH': 8,
         'AWUSER_ENABLE': 0,
@@ -130,7 +140,8 @@ def test_axi_io_pmp(request, data_width, reg_type):
         'ARUSER_ENABLE': 0,
         'ARUSER_WIDTH': 1,
         'RUSER_ENABLE': 0,
-        'RUSER_WIDTH': 1
+        'RUSER_WIDTH': 1,
+        'REG_TYPE': reg_type
     }
     extra_env = {f'PARAM_{k}': str(v) for k, v in parameters.items()}
 
@@ -141,17 +152,17 @@ def test_axi_io_pmp(request, data_width, reg_type):
             toplevel=toplevel,
             module=module
         )
-
         # add wave generation
-        extra_env.append("--trace -fst")
-        parameters["WAVES"] = 0
+        sim.compile_args += ["-Wno-TIMESCALEMOD", "-Wno-WIDTH", "-Wno-UNOPT"] # -Wno-SELRANGE  -Wno-CASEINCOMPLETE
 
     else:
         sim = cocotb_test.simulator.Icarus(
             toplevel=toplevel,
             module=module
         )
-        parameters["WAVES"] = 1
+
+    # add wave generation
+    parameters["WAVES"] = 1
 
     sim.python_search = [tests_dir]
     sim.verilog_sources = verilog_sources
@@ -160,6 +171,7 @@ def test_axi_io_pmp(request, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir,x)), [ "pmp/include/", "common_cells/src/"]))
     sim.run()
 
     # cocotb_test.simulator.run(
