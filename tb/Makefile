@@ -11,7 +11,6 @@ DUT      = axi_io_pmp
 TOPLEVEL = $(DUT)
 MODULE   = test_$(DUT)
 
-
 VERILOG_SOURCES += ../src/$(DUT).v
 VERILOG_SOURCES += ../src/axi_register/axi_register_wr.v
 VERILOG_SOURCES += ../src/axi_register/axi_register_rd.v
@@ -51,7 +50,6 @@ ifeq ($(SIM), icarus)
 
 	PLUSARGS += -fst -g
 
-
 	COMPILE_ARGS += -P $(TOPLEVEL).DATA_WIDTH=$(PARAM_DATA_WIDTH)
 	COMPILE_ARGS += -P $(TOPLEVEL).ADDR_WIDTH=$(PARAM_ADDR_WIDTH)
 	COMPILE_ARGS += -P $(TOPLEVEL).STRB_WIDTH=$(PARAM_STRB_WIDTH)
@@ -71,12 +69,8 @@ ifeq ($(SIM), icarus)
 	COMPILE_ARGS += -P $(TOPLEVEL).B_REG_TYPE=$(PARAM_B_REG_TYPE)
 	COMPILE_ARGS += -P $(TOPLEVEL).AR_REG_TYPE=$(PARAM_AR_REG_TYPE)
 	COMPILE_ARGS += -P $(TOPLEVEL).R_REG_TYPE=$(PARAM_R_REG_TYPE)
+	COMPILE_ARGS += -P $(TOPLEVEL).WAVES=$(WAVES)
 
-	ifeq ($(WAVES), 1)
-		VERILOG_SOURCES += iverilog_dump.v
-		COMPILE_ARGS += -s iverilog_dump
-	endif
-	
 else ifeq ($(SIM), verilator)
 	COMPILE_ARGS += -Wno-SELRANGE -Wno-WIDTH -Wno-CASEINCOMPLETE -Wno-TIMESCALEMOD
 
@@ -99,23 +93,11 @@ else ifeq ($(SIM), verilator)
 	COMPILE_ARGS += -GB_REG_TYPE=$(PARAM_B_REG_TYPE)
 	COMPILE_ARGS += -GAR_REG_TYPE=$(PARAM_AR_REG_TYPE)
 	COMPILE_ARGS += -GR_REG_TYPE=$(PARAM_R_REG_TYPE)
-
-	ifeq ($(WAVES), 1)
-		COMPILE_ARGS += --trace-fst
-	endif
+	COMPILE_ARGS += -GWAVES=$(WAVES)
 
 endif
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
-
-iverilog_dump.v:
-	echo 'module iverilog_dump();' > $@
-	echo 'initial begin' >> $@
-	echo '    $$dumpfile("$(TOPLEVEL).fst");' >> $@
-	echo '    $$dumpvars(0, $(TOPLEVEL));' >> $@
-	echo 'end' >> $@
-	echo 'endmodule' >> $@
-
 
 # Profiling
 DOT_BINARY ?= dot
@@ -130,6 +112,6 @@ profile:
 
 clean::
 	@rm -rf iverilog_dump.v
-	@rm -rf dump.fst $(TOPLEVEL).fst
+	@rm -rf $(TOPLEVEL).vcd
 	@rm -rf results.xml __pycache__
 	@rm -rf callgraph.svg test_profile.pstat
