@@ -8,5 +8,4 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           source setup_env.sh
-          cd tb/
-          make
+          pytest tb/
