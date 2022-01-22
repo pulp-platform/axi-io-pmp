@@ -1,6 +1,7 @@
 import os
 import logging
 import pytest
+import bitarray
 
 import cocotb
 import cocotb_test.simulator
@@ -51,18 +52,26 @@ async def run_test(dut):
     await tb.cycle_reset()
 
     # write data to RAM (in order to have a deterministic value to read)
-    addr = 0x0000
+    addr = 0x0000_cbc0
     length = 8
     test_data = bytearray([x % 2**8 for x in range(length)])
-    tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())#("_", 1))
+    tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())  # ("_", 1))
     tb.axi_ram.write(addr, test_data)
 
 
-    #asdf = dut.axi_io_pmp.rst
-    #tb.log.info("TEST: rst %d", asdf)
+    # setup pmp entry
+
+    # at the moment, we do this directly in the sv code
+
 
     # read data through the IO-PMP
     data = await tb.axi_master.read(addr, length)
+
+
+
+
+    tb.log.info("Exposed signals: %s", tb.dut.pmp0.allow_o.value)
+    #tb.log.info("TEST: pmp_allow %d", asdf)
 
     # check result
     assert data.data == test_data
@@ -90,7 +99,7 @@ def test_axi_io_pmp(request, addr_width, data_width, reg_type):
     toplevel = dut
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     src_dir = os.path.abspath(os.path.join(tests_dir, '..', 'src'))
-    simulator = "verilator"
+    simulator = "questa"
 
     # verilog source list
     verilog_sources = [
@@ -152,8 +161,14 @@ def test_axi_io_pmp(request, addr_width, data_width, reg_type):
             toplevel=toplevel,
             module=module
         )
-        # add wave generation
+        # suppress some verilator specific warnings (i.e. missing timescale information, ..) 
         sim.compile_args += ["-Wno-TIMESCALEMOD", "-Wno-WIDTH", "-Wno-UNOPT"] # -Wno-SELRANGE  -Wno-CASEINCOMPLETE
+
+    elif simulator == "questa":
+        sim = cocotb_test.simulator.Questa(
+            toplevel=toplevel,
+            module=module
+        )
 
     else:
         sim = cocotb_test.simulator.Icarus(
