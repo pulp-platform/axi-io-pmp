@@ -15,6 +15,12 @@ VERILOG_SOURCES += ../src/$(DUT).v
 VERILOG_SOURCES += ../src/axi_register/axi_register_wr.v
 VERILOG_SOURCES += ../src/axi_register/axi_register_rd.v
 
+
+VERILOG_SOURCES += ../src/pmp/include/riscv.sv
+VERILOG_SOURCES += ../src/pmp/pmp_entry.sv
+VERILOG_SOURCES += ../src/pmp/pmp.sv
+
+
 # VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
 # VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
 # VERILOG_SOURCES += ../src/axi/include/axi/typedef.svh
