@@ -3,4 +3,5 @@ cocotb_test==0.2.1
 cocotbext-axi==0.1.18
 myhdl
 gprof2dot
+bitarray
 pydevd-pycharm~=213.6461.77
