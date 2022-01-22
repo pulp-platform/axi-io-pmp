@@ -151,41 +151,42 @@ module axi_io_pmp #(
     input                    s_axi_rready
 );
 
-    localparam REG_TYPE = 1; // { Bypass = 0, Registered = 1, Skid Buffer = 2}
-
     localparam PLEN = 56;
     localparam PMP_LEN = 54;
-    localparam NR_ENTRIES = 1;
+    localparam NR_ENTRIES = 16;
+    localparam MAX_ENTRIES = 16;
 
-   `ifdef VERILATOR
 
-    assert property(@(posedge clk) ADDR_WIDTH == 32 | ADDR_WIDTH == 64 ); // we only support ADDR_WIDTH in {32, 64}
+    logic [MAX_ENTRIES-1:0][PLEN-1:0] cfg_addr_reg;
+    riscv::pmpcfg_t [MAX_ENTRIES-1:0] cfg_reg;
 
-    logic [15:0][PLEN-1:0] cfg_addr_reg;
-    riscv::pmpcfg_t [15:0] cfg_reg;
-
+    reg pmp_allow_reg;
     wire pmp_allow;
+
+    reg [16-1:0] base, range;
 
     initial begin
         // reset all entries
-        for (int i = 0; i < 16; i = i + 1) begin
-            cfg_addr_reg = '0;
+        for (int i = 0; i < MAX_ENTRIES; i = i + 1) begin
+            cfg_addr_reg[i] = '0;
             cfg_reg[i] = '0;
         end 
 
-        // setup first entry
-        // TODO
+        base = 16'habc0;
+        range = 16'h2000;
+        cfg_addr_reg[0] = (base + (range)) >> 2;
+        cfg_reg[0] = (riscv::ACCESS_READ | riscv::ACCESS_WRITE | riscv::ACCESS_EXEC) | (riscv::NAPOT << 3);
     end
 
     pmp #(
-        .PLEN(PLEN),       // rv64: 56
+        .PLEN(PLEN),          // rv64: 56
         .PMP_LEN(PMP_LEN),    // rv64: 54
         .NR_ENTRIES(NR_ENTRIES)
     ) pmp0 (
         // Input
         .addr_i(s_axi_araddr[PLEN-1:0]), // [PLEN-1:0]
         .access_type_i(riscv::ACCESS_READ), // riscv::pmp_access_t
-        .priv_lvl_i(riscv::PRIV_LVL_M), // riscv::priv_lvl_t
+        .priv_lvl_i(riscv::PRIV_LVL_S), // riscv::priv_lvl_t
         // Configuration
         .conf_addr_i(cfg_addr_reg), // [15:0][PMP_LEN-1:0] 
         .conf_i(cfg_reg), // riscv::pmpcfg_t [15:0]
@@ -194,7 +195,10 @@ module axi_io_pmp #(
     );
 
 
-    `endif
+    always@(posedge clk) begin
+        pmp_allow_reg <= pmp_allow;
+    end
+
 
     axi_register_wr #(
         .DATA_WIDTH(DATA_WIDTH),
