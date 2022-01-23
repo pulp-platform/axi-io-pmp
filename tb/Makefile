@@ -11,6 +11,7 @@ DUT      = axi_io_pmp
 TOPLEVEL = $(DUT)
 MODULE   = test_$(DUT)
 
+
 VERILOG_SOURCES += ../src/$(DUT).v
 VERILOG_SOURCES += ../src/axi_register/axi_register_wr.v
 VERILOG_SOURCES += ../src/axi_register/axi_register_rd.v
@@ -20,6 +21,9 @@ VERILOG_SOURCES += ../src/pmp/include/riscv.sv
 VERILOG_SOURCES += ../src/pmp/pmp_entry.sv
 VERILOG_SOURCES += ../src/pmp/pmp.sv
 
+ifeq ($(SIM), questa)
+	SIM_ARGS += +incdir+/home/andreas/PycharmProjects/axi-io-pmp/src/pmp/include +incdir+/home/andreas/PycharmProjects/axi-io-pmp/src/common_cells/src
+endif
 
 # VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
 # VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
