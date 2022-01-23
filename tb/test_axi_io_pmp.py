@@ -52,8 +52,8 @@ async def run_test(dut):
     await tb.cycle_reset()
 
     # write data to RAM (in order to have a deterministic value to read)
-    addr = 0x0000_cbc0
-    length = 8
+    addr = 0x0000_000f # allowed range with address below: 0000_0000 - 0000_000f
+    length = 1
     test_data = bytearray([x % 2**8 for x in range(length)])
     tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())  # ("_", 1))
     tb.axi_ram.write(addr, test_data)
@@ -66,8 +66,6 @@ async def run_test(dut):
 
     # read data through the IO-PMP
     data = await tb.axi_master.read(addr, length)
-
-
 
 
     tb.log.info("Exposed signals: %s", tb.dut.pmp0.allow_o.value)

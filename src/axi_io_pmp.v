@@ -157,7 +157,8 @@ module axi_io_pmp #(
     localparam MAX_ENTRIES = 16;
 
 
-    logic [MAX_ENTRIES-1:0][PLEN-1:0] cfg_addr_reg;
+    import riscv::*;
+    logic [MAX_ENTRIES-1:0][PMP_LEN-1:0] cfg_addr_reg;
     riscv::pmpcfg_t [MAX_ENTRIES-1:0] cfg_reg;
 
     reg pmp_allow_reg;
@@ -172,9 +173,9 @@ module axi_io_pmp #(
             cfg_reg[i] = '0;
         end 
 
-        base = 16'habc0;
-        range = 16'h2000;
-        cfg_addr_reg[0] = (base + (range)) >> 2;
+        //base = 16'habc0;
+        //range = 16'h2000;
+        cfg_addr_reg[0] = {46'h0, 8'b0000_0001 }; // static 16byte range at addr 0..0, // (base + (range)) >> 2;, https://stackoverflow.com/questions/61807678/risc-v-pmp-address-configuration
         cfg_reg[0] = (riscv::ACCESS_READ | riscv::ACCESS_WRITE | riscv::ACCESS_EXEC) | (riscv::NAPOT << 3);
     end
 
@@ -345,11 +346,13 @@ module axi_io_pmp #(
     /*
      * Simulation/Debugging
      */
+   `ifdef COCOTB_SIM
     initial begin
         if(WAVES == 1) begin
             $dumpfile("axi_io_pmp.vcd");
             $dumpvars(0, axi_io_pmp);
         end
     end
+    `endif
 
 endmodule
