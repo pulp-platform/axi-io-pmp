@@ -24,10 +24,15 @@ gtkwave tb/axi_io_pmp.vcd
 
 ### Modules List
 
-| Name                                                         | Description |
-|--------------------------------------------------------------|-------------|
-| [`axi_master_connector`](src/connector/axi_master_connector.v) |             |
-| [`axi_slave_connector`](src/connector/axi_slave_connector.v)   |             |
+| Name                                                            | Description |
+|-----------------------------------------------------------------|-------------|
+| [`axi_io_pmp`](src/axi_io_pmp.sv)                               |             |
+| [`dut`](src/dut.sv)                                             |             |
+| [`axi_conf`](src/connector/axi_conf.sv)                         |             |
+| [`axi_master_connector`](src/connector/axi_master_connector.sv) |             |
+| [`axi_slave_connector`](src/connector/axi_slave_connector.sv)   |             |
+| [`riscv`](src/include/riscv.sv)                                 |             |
+| [`pmp`](src/pmp/pmp.sv)                                         |             |
 
 
 ### Frequently Asked Questions
