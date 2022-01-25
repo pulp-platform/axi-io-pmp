@@ -6,10 +6,16 @@ curl -fsSL https://download.opensuse.org/repositories/home:phiwag:edatools/xUbun
 sudo apt update
 
 # install required packages
-xargs sudo apt-get install < ubuntu_requirements.txt
+xargs sudo apt-get -y install < ubuntu_requirements.txt
 
 # install python virtual environment
 git submodule update --init --recursive
 virtualenv -p python3 venv
 source venv/bin/activate
 python3 -m pip install -r requirements.txt
+
+# setup questasim
+QUESTA_ENV=/opt/questasim/setup.sh
+if [ -f "$QUESTA_ENV" ]; then
+  source $QUESTA_ENV
+fi
