@@ -81,6 +81,9 @@ module axi_io_pmp #(
         end
     end
 
+    /*
+     * Read check PMP
+     */
     pmp #(
         .PLEN      ( PLEN       ),
         .PMP_LEN   ( PMP_LEN    ),
@@ -97,103 +100,111 @@ module axi_io_pmp #(
         .allow_o      ( pmp_allow                   )
     );
 
+    // /*
+    //  * Write check PMP
+    //  */
+    // pmp #(
+    //     .PLEN      ( PLEN       ),
+    //     .PMP_LEN   ( PMP_LEN    ),
+    //     .NR_ENTRIES( NR_ENTRIES )
+    // ) pmp1 (
+    //     // input
+    //     .addr_i       ( slv_req_i.aw.addr[PLEN-1:0] ), // [PLEN-1:0]
+    //     .access_type_i( riscv::ACCESS_WRITE         ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
+    //     .priv_lvl_i   ( riscv::PRIV_LVL_S           ), // riscv::priv_lvl_t, all accesses here are unprivileged
+    //     // configuration
+    //     .conf_addr_i  ( cfg_addr_reg                ), // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
+    //     .conf_i       ( cfg_reg                     ), // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
+    //     // output
+    //     .allow_o      ( pmp_allow                   )
+    // );
 
-    localparam Bypass = 1'b0;
 
-    axi_cut #(
-    // bypass enable
-    .Bypass(Bypass),
-    // AXI channel structs
-    .aw_chan_t(axi_conf::aw_chan_t),
-    .w_chan_t(axi_conf::w_chan_t),
-    .b_chan_t(axi_conf::b_chan_t),
-    .ar_chan_t(axi_conf::ar_chan_t),
-    .r_chan_t(axi_conf::r_chan_t),
-    // AXI request & response structs
-    .req_t(axi_conf::req_t),
-    .resp_t(axi_conf::resp_t)
-    ) axi_cut0 (
-    .clk_i(clk),
-    .rst_ni(~rst),
-    // slave port
-    .slv_req_i(slv_req_i),
-    .slv_resp_o(slv_resp_o),
-    // master port
-    .mst_req_o(mst_req_o),
-    .mst_resp_i(mst_resp_i)
+
+    localparam Bypass = 1'b1;
+
+    /*
+     * Write channels
+     */
+    spill_register #(
+    .T       ( axi_conf::aw_chan_t ),
+    .Bypass  ( Bypass              )
+    ) i_reg_aw (
+    .clk_i   ( clk                 ),
+    .rst_ni  ( ~rst                ),
+    .valid_i ( slv_req_i.aw_valid  ),
+    .ready_o ( slv_resp_o.aw_ready ),
+    .data_i  ( slv_req_i.aw        ),
+    .valid_o ( mst_req_o.aw_valid  ),
+    .ready_i ( mst_resp_i.aw_ready ),
+    .data_o  ( mst_req_o.aw        )
+    );
+
+    spill_register #(
+    .T       ( axi_conf::w_chan_t ),
+    .Bypass  ( Bypass             )
+    ) i_reg_w  (
+    .clk_i   ( clk                ),
+    .rst_ni  ( ~rst               ),
+    .valid_i ( slv_req_i.w_valid  ),
+    .ready_o ( slv_resp_o.w_ready ),
+    .data_i  ( slv_req_i.w        ),
+    .valid_o ( mst_req_o.w_valid  ),
+    .ready_i ( mst_resp_i.w_ready ),
+    .data_o  ( mst_req_o.w        )
+    );
+
+    spill_register #(
+    .T       ( axi_conf::b_chan_t ),
+    .Bypass  ( Bypass             )
+    ) i_reg_b  (
+    .clk_i   ( clk                ),
+    .rst_ni  ( ~rst               ),
+    .valid_i ( mst_resp_i.b_valid ),
+    .ready_o ( mst_req_o.b_ready  ),
+    .data_i  ( mst_resp_i.b       ),
+    .valid_o ( slv_resp_o.b_valid ),
+    .ready_i ( slv_req_i.b_ready  ),
+    .data_o  ( slv_resp_o.b       )
+    );
+
+    /*
+     * Read channels
+     */
+    spill_register #(
+    .T       ( axi_conf::ar_chan_t ),
+    .Bypass  ( Bypass              )
+    ) i_reg_ar (
+    .clk_i   ( clk                 ),
+    .rst_ni  ( ~rst                ),
+    .valid_i ( slv_req_i.ar_valid  ),
+    .ready_o ( slv_resp_o.ar_ready ),
+    .data_i  ( slv_req_i.ar        ),
+    .valid_o ( mst_req_o.ar_valid  ),
+    .ready_i ( mst_resp_i.ar_ready ),
+    .data_o  ( mst_req_o.ar        )
     );
 
 
+    axi_conf::r_chan_t r_chan;
+    assign r_chan.id = mst_resp_i.r.id;
+    assign r_chan.data = pmp_allow ? mst_resp_i.r.data : '1; // TODO: this should not even be necessary (we should block the transaction earlier)
+    assign r_chan.resp = pmp_allow ? axi_conf::RESP_OKAY : axi_conf::RESP_SLVERR;
+    assign r_chan.last = mst_resp_i.r.last;
+    assign r_chan.user = mst_resp_i.r.user;
 
-    // // a spill register for each channel
-    // spill_register #(
-    // .T       ( axi_conf::aw_chan_t ),
-    // .Bypass  ( Bypass    )
-    // ) i_reg_aw (
-    // .clk_i   ( clk               ),
-    // .rst_ni  ( ~rst              ),
-    // .valid_i ( slv_req_i.aw_valid  ),
-    // .ready_o ( slv_resp_o.aw_ready ),
-    // .data_i  ( slv_req_i.aw        ),
-    // .valid_o ( mst_req_o.aw_valid  ),
-    // .ready_i ( mst_resp_i.aw_ready ),
-    // .data_o  ( mst_req_o.aw        )
-    // );
-
-    // spill_register #(
-    // .T       ( axi_conf::w_chan_t ),
-    // .Bypass  ( Bypass   )
-    // ) i_reg_w  (
-    // .clk_i   ( clk              ),
-    // .rst_ni  ( ~rst             ),
-    // .valid_i ( slv_req_i.w_valid  ),
-    // .ready_o ( slv_resp_o.w_ready ),
-    // .data_i  ( slv_req_i.w        ),
-    // .valid_o ( mst_req_o.w_valid  ),
-    // .ready_i ( mst_resp_i.w_ready ),
-    // .data_o  ( mst_req_o.w        )
-    // );
-
-    // spill_register #(
-    // .T       ( axi_conf::b_chan_t ),
-    // .Bypass  ( Bypass   )
-    // ) i_reg_b  (
-    // .clk_i   ( clk              ),
-    // .rst_ni  ( ~rst             ),
-    // .valid_i ( mst_resp_i.b_valid ),
-    // .ready_o ( mst_req_o.b_ready  ),
-    // .data_i  ( mst_resp_i.b       ),
-    // .valid_o ( slv_resp_o.b_valid ),
-    // .ready_i ( slv_req_i.b_ready  ),
-    // .data_o  ( slv_resp_o.b       )
-    // );
-
-    // spill_register #(
-    // .T       ( axi_conf::ar_chan_t ),
-    // .Bypass  ( Bypass    )
-    // ) i_reg_ar (
-    // .clk_i   ( clk               ),
-    // .rst_ni  ( ~rst              ),
-    // .valid_i ( slv_req_i.ar_valid  ),
-    // .ready_o ( slv_resp_o.ar_ready ),
-    // .data_i  ( slv_req_i.ar        ),
-    // .valid_o ( mst_req_o.ar_valid  ),
-    // .ready_i ( mst_resp_i.ar_ready ),
-    // .data_o  ( mst_req_o.ar        )
-    // );
-
-    // spill_register #(
-    // .T       ( axi_conf::r_chan_t ),
-    // .Bypass  ( Bypass   )
-    // ) i_reg_r  (
-    // .clk_i   ( clk              ),
-    // .rst_ni  ( ~rst             ),
-    // .valid_i ( mst_resp_i.r_valid ),
-    // .ready_o ( mst_req_o.r_ready  ),
-    // .data_i  ( mst_resp_i.r       ),
-    // .valid_o ( slv_resp_o.r_valid ),
-    // .ready_i ( slv_req_i.r_ready  ),
-    // .data_o  ( slv_resp_o.r       )
-    // );
+    spill_register #(
+    .T       ( axi_conf::r_chan_t ),
+    .Bypass  ( Bypass             )
+    ) i_reg_r  (
+    .clk_i   ( clk                ),
+    .rst_ni  ( ~rst               ),
+    .valid_i ( mst_resp_i.r_valid ),
+    .ready_o ( mst_req_o.r_ready  ),
+    .data_i  ( r_chan             ), // mst_resp_i.r 
+    .valid_o ( slv_resp_o.r_valid ),
+    .ready_i ( slv_req_i.r_ready  ),
+    .data_o  ( slv_resp_o.r       )
+    );
 
 endmodule
