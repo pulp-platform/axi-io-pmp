@@ -162,7 +162,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         "common_cells/src/cf_math_pkg.sv",
         "common_cells/src/lzc.sv",
         "common_cells/src/spill_register.sv",
-
         "common_cells/src/delta_counter.sv",
         "common_cells/src/counter.sv",
         "common_cells/src/stream_delay.sv",
@@ -171,13 +170,12 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         "axi/src/axi_pkg.sv",
         "axi/src/axi_intf.sv",
         "axi/src/axi_cut.sv",
-
         "axi/src/axi_delayer.sv",
 
         # axi connector
         "connector/axi_conf.sv",
-        "connector/axi_master_connector.v",
-        "connector/axi_slave_connector.v",
+        "connector/axi_master_connector.sv",
+        "connector/axi_slave_connector.sv",
 
         # pmp sources
         "pmp/include/riscv.sv",
@@ -188,10 +186,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         "axi_io_pmp.sv",
         f"{dut}.sv",
 
-        # # LibreCores source
-        # "axi_register/axi_register.v",
-        # "axi_register/axi_register_rd.v",
-        # "axi_register/axi_register_wr.v",
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
@@ -230,13 +224,19 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
             module=module
         )
         # suppress some verilator specific warnings (i.e. missing timescale information, ..)
-        sim.compile_args += ["-Wno-TIMESCALEMOD", "-Wno-WIDTH", "-Wno-UNOPT"]  # -Wno-SELRANGE  -Wno-CASEINCOMPLETE
+        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD",  "-Wno-CASEINCOMPLETE", "-Wno-WIDTH",  "-Wno-SELRANGE"]
 
     elif simulator == "questa":
         sim = cocotb_test.simulator.Questa(
             toplevel=toplevel,
             module=module
         )
+        sim.compile_args += [
+            f"+define+DATA_WIDTH={parameters['DATA_WIDTH']}",
+            f"+define+ADDR_WIDTH={parameters['ADDR_WIDTH']}", 
+            f"+define+STRB_WIDTH={parameters['STRB_WIDTH']}", 
+            f"+define+ID_WIDTH={parameters['ID_WIDTH']}"
+            f"+define+USER_WIDTH={parameters['AWUSER_WIDTH']}"]
 
     else:
         sim = cocotb_test.simulator.Simulator(
@@ -254,6 +254,5 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
-    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)),
-                            ["pmp/include/", "common_cells/src/", "axi/include/", "connector/"]))
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/", "axi/include/", "connector/"]))
     sim.run()
