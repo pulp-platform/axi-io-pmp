@@ -20,8 +20,9 @@ class TB:
 
     def __init__(self, dut):
         # activate for remote debugging
-        # import pydevd_pycharm
-        # pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
+        if "REMOTE" in os.environ:
+            import pydevd_pycharm
+            pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
 
         self.dut = dut
 
@@ -96,9 +97,8 @@ async def run_test(dut):
     ###################
     # setup pmp entry
     ###################
-    tb.log.info("Before setting new conf reg: %s", tb.dut.cfg_reg[0].value)
-    tb.log.info("Before setting new add_reg: %s", tb.dut.cfg_addr_reg[0].value)
-
+    tb.log.info("Before setting new conf reg: %s", tb.dut.axi_io_pmp0.cfg_reg[0].value)
+    tb.log.info("Before setting new add_reg: %s", tb.dut.axi_io_pmp0.cfg_addr_reg[0].value)
 
     # config
     locked = bitarray("0")
@@ -106,26 +106,24 @@ async def run_test(dut):
     mode = PMPMode.NAPOT.value
     access = PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value | PMPAccess.ACCESS_EXEC.value
     conf: bitarray = locked + reserved + mode + access
-    dut.cfg_reg[0].value = ba2int(conf)
+    dut.axi_io_pmp0.cfg_reg[0].value = ba2int(conf)
     # address
-    PMP_LEN = tb.dut.PMP_LEN.value
+    PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
     napot_addr = int2ba(int(addr + (32 / 2 - 1)) >> 2, PMP_LEN)
     tb.log.info("NAPOT addr: %s", napot_addr.to01())
 
-    dut.cfg_addr_reg[0].value = ba2int(napot_addr)
+    dut.axi_io_pmp0.cfg_addr_reg[0].value = ba2int(napot_addr)
 
     await RisingEdge(dut.clk)
 
-    tb.log.info("After setting new conf reg:  %s", tb.dut.cfg_reg[0].value)
-    tb.log.info("After setting new add_reg:  %s", tb.dut.cfg_addr_reg[0].value)
+    tb.log.info("After setting new conf reg:  %s", tb.dut.axi_io_pmp0.cfg_reg[0].value)
+    tb.log.info("After setting new add_reg:  %s", tb.dut.axi_io_pmp0.cfg_addr_reg[0].value)
 
-
-
-    ###########################
+    ##########################
     # read data through the IO-PMP
     ###########################
     data = await tb.axi_master.read(addr, length)
-    tb.log.info("PMP allow: %s", dut.pmp0.allow_o.value)
+    tb.log.info("PMP allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
 
     ###################
     # check result
@@ -151,7 +149,7 @@ if cocotb.SIM_NAME:
 @pytest.mark.parametrize("simulator", ["questa"])  # ["verilator", "questa"]
 def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     # extract & setup relevant information
-    dut = "axi_io_pmp"
+    dut = "dut"
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
     tests_dir = os.path.abspath(os.path.dirname(__file__))
@@ -159,26 +157,41 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
 
     # verilog source list
     verilog_sources = [
-        # toplevel
-        f"{dut}.v",
-        # LibreCores source
-        "axi_register/axi_register.v",
-        "axi_register/axi_register_rd.v",
-        "axi_register/axi_register_wr.v",
+
+        # pulp-platform common_cells
+        "common_cells/src/cf_math_pkg.sv",
+        "common_cells/src/lzc.sv",
+        "common_cells/src/spill_register.sv",
+
+        "common_cells/src/delta_counter.sv",
+        "common_cells/src/counter.sv",
+        "common_cells/src/stream_delay.sv",
+
+        # pulp-platform axi
+        "axi/src/axi_pkg.sv",
+        "axi/src/axi_intf.sv",
+        "axi/src/axi_cut.sv",
+
+        "axi/src/axi_delayer.sv",
+
+        # axi connector
+        "connector/axi_conf.sv",
+        "connector/axi_master_connector.v",
+        "connector/axi_slave_connector.v",
+
         # pmp sources
+        "pmp/include/riscv.sv",
         "pmp/pmp_entry.sv",
         "pmp/pmp.sv",
-        # # pulp-platform source
-        "common_cells/src/lzc.sv",
-        # "axi/include/axi/assign.svh",
-        # "axi/include/axi/typedef.svh",
-        # "common_cells/src/spill_register.sv",
-        # "axi/src/axi_pkg.sv",
-        # "axi/src/axi_cut.sv",
-        # # axi connector
-        # "connector/axi_conf.sv",
-        # "connector/axi_master_connector.v",
-        # "connector/axi_slave_connector.v"
+
+        # toplevel
+        "axi_io_pmp.sv",
+        f"{dut}.sv",
+
+        # # LibreCores source
+        # "axi_register/axi_register.v",
+        # "axi_register/axi_register_rd.v",
+        # "axi_register/axi_register_wr.v",
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
@@ -241,5 +254,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
-    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/"]))
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)),
+                            ["pmp/include/", "common_cells/src/", "axi/include/", "connector/"]))
     sim.run()
