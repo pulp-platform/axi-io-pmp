@@ -19,9 +19,9 @@
 
 module axi_io_pmp #(
     // Width of data bus in bits
-    parameter DATA_WIDTH    = 32,
+    parameter DATA_WIDTH    = 64,
     // Width of address bus in bits
-    parameter ADDR_WIDTH    = 32,
+    parameter ADDR_WIDTH    = 64,
     // Width of strobe (width of data bus in words)
     parameter STRB_WIDTH    = (DATA_WIDTH / 8),
     // Width of id signal
@@ -48,7 +48,7 @@ module axi_io_pmp #(
     parameter RUSER_WIDTH   = 1,
     // register type { Bypass = 0, Registered = 1, Skid Buffer = 2}
     parameter REG_TYPE      = 1,
-    // Waveform generation {Off=0, On=1}
+    // Waveform generation { Off=0, On=1 }
     parameter WAVES         = 0
 ) (
     input  wire                     clk,
@@ -151,53 +151,51 @@ module axi_io_pmp #(
     input                    s_axi_rready
 );
 
-    localparam PLEN =        56;
-    localparam PMP_LEN =     54;
-    localparam NR_ENTRIES =  16;
+    localparam PLEN        = 56; // rv64: 56, rv32: 34
+    localparam PMP_LEN     = 54; // rv64: 54, rv32: 32
+    localparam NR_ENTRIES  = 16;
     localparam MAX_ENTRIES = 16;
 
 
     logic [MAX_ENTRIES-1:0][PMP_LEN-1:0] cfg_addr_reg;
     logic [$bits(riscv::pmpcfg_t)-1:0] [MAX_ENTRIES-1:0] cfg_reg;
 
-    reg pmp_allow_reg;
     wire pmp_allow;
-
-    reg [16-1:0] base, range;
 
     initial begin
         // reset all entries
         for (int i = 0; i < MAX_ENTRIES; i = i + 1) begin
             cfg_addr_reg[i] = '0;
-            cfg_reg[i] = '0;
+            cfg_reg[i]      = '0;
         end
-
-        //base = 16'habc0;
-        //range = 16'h2000;
-        cfg_addr_reg[0] = {46'h0, 8'b0000_0001 }; // static 16byte range at addr 0..0, // (base + (range)) >> 2;,
-        cfg_reg[0] = (riscv::ACCESS_READ | riscv::ACCESS_WRITE | riscv::ACCESS_EXEC) | (riscv::NAPOT << 3);
     end
 
     pmp #(
-        .PLEN(PLEN),          // rv64: 56
-        .PMP_LEN(PMP_LEN),    // rv64: 54
+        .PLEN(PLEN),
+        .PMP_LEN(PMP_LEN),
         .NR_ENTRIES(NR_ENTRIES)
     ) pmp0 (
         // Input
-        .addr_i(s_axi_araddr[PLEN-1:0]), // [PLEN-1:0]
-        .access_type_i(riscv::ACCESS_READ), // riscv::pmp_access_t
-        .priv_lvl_i(riscv::PRIV_LVL_S), // riscv::priv_lvl_t
+        .addr_i(s_axi_araddr[PLEN-1:0]),    // [PLEN-1:0]
+        .access_type_i(riscv::ACCESS_READ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
+        .priv_lvl_i(riscv::PRIV_LVL_S),     // riscv::priv_lvl_t, all accesses here are unprivileged
         // Configuration
-        .conf_addr_i(cfg_addr_reg), // [15:0][PMP_LEN-1:0] 
-        .conf_i(cfg_reg), // riscv::pmpcfg_t [15:0]
+        .conf_addr_i(cfg_addr_reg),         // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
+        .conf_i(cfg_reg),                   // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
         // Output
         .allow_o(pmp_allow)
     );
 
+/*
+  req_t  slv_req,  mst_req;
+  resp_t slv_resp, mst_resp;
 
-    always@(posedge clk) begin
-        pmp_allow_reg <= pmp_allow;
-    end
+  `AXI_ASSIGN_TO_REQ(slv_req, in)
+  `AXI_ASSIGN_FROM_RESP(in, slv_resp)
+
+  `AXI_ASSIGN_FROM_REQ(out, mst_req)
+  `AXI_ASSIGN_TO_RESP(mst_resp, out)
+  */
 
 
     axi_register_wr #(
