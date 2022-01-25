@@ -13,7 +13,7 @@ from cocotbext.axi import AxiBus, AxiMaster, AxiRam
 import math
 from enum import Enum
 from bitarray import bitarray
-from bitarray.util import int2ba
+from bitarray.util import int2ba, ba2int
 
 
 class TB:
@@ -62,7 +62,7 @@ class PMPAccess(Enum):
     ACCESS_EXEC = bitarray("100")
 
 
-def set_pmp_napot(base: int, range: int, access: bitarray, PLEN=56):
+def set_pmp_napot(base: int, range: int, access: bitarray, PMP_LEN=54):
     # config
     locked = bitarray("0")
     reserved = bitarray("00")
@@ -71,7 +71,7 @@ def set_pmp_napot(base: int, range: int, access: bitarray, PLEN=56):
 
     # address (NAPOT)
     assert (2 ** math.log2(range) == range)  # check range is 2**X
-    address: bitarray = int2ba(int(base + (range / 2 - 1)) >> 2, PLEN)
+    address: bitarray = int2ba(int(base + (range / 2 - 1)) >> 2, PMP_LEN)
 
     # return (conf, addr) tuple
     return conf, address
@@ -88,7 +88,7 @@ async def run_test(dut):
     # write data to RAM (in order to have a deterministic value to read)
     ##################
     addr = 0x0000_0000  # allowed range with address below: 0000_0000 - 0000_000f
-    length = 8
+    length = 1
     test_data = bytearray([x % 2 ** 8 for x in range(length)])
     tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())  # ("_", 1))
     tb.axi_ram.write(addr, test_data)
@@ -96,27 +96,36 @@ async def run_test(dut):
     ###################
     # setup pmp entry
     ###################
+    tb.log.info("Before setting new conf reg: %s", tb.dut.cfg_reg[0].value)
+    tb.log.info("Before setting new add_reg: %s", tb.dut.cfg_addr_reg[0].value)
+
+
     # config
     locked = bitarray("0")
     reserved = bitarray("00")
     mode = PMPMode.NAPOT.value
     access = PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value | PMPAccess.ACCESS_EXEC.value
     conf: bitarray = locked + reserved + mode + access
-    tb.log.info("Before setting new conf reg: %s", tb.dut.cfg_reg.value[64:127])
-    tb.dut.cfg_reg.value[64:127] = conf.to01()
-    tb.log.info("After setting new conf reg:  %s", tb.dut.cfg_reg.value[64:127])
+    dut.cfg_reg[0].value = ba2int(conf)
     # address
     PMP_LEN = tb.dut.PMP_LEN.value
-    napot_addr = int2ba(int(addr + (length / 2 - 1)) >> 2, PMP_LEN)
-    tb.log.info("Before setting new add_reg: %s", tb.dut.cfg_addr_reg.value[864 - PMP_LEN:863])
-    tb.dut.cfg_addr_reg.value[864 - PMP_LEN:863] = napot_addr.to01()
-    tb.log.info("After setting new add_reg:  %s", tb.dut.cfg_addr_reg.value[864 - PMP_LEN:863])
+    napot_addr = int2ba(int(addr + (32 / 2 - 1)) >> 2, PMP_LEN)
+    tb.log.info("NAPOT addr: %s", napot_addr.to01())
+
+    dut.cfg_addr_reg[0].value = ba2int(napot_addr)
+
+    await RisingEdge(dut.clk)
+
+    tb.log.info("After setting new conf reg:  %s", tb.dut.cfg_reg[0].value)
+    tb.log.info("After setting new add_reg:  %s", tb.dut.cfg_addr_reg[0].value)
+
+
 
     ###########################
     # read data through the IO-PMP
     ###########################
     data = await tb.axi_master.read(addr, length)
-    tb.log.info("PMP allow: %s", tb.dut.pmp0.allow_o.value)
+    tb.log.info("PMP allow: %s", dut.pmp0.allow_o.value)
 
     ###################
     # check result
@@ -157,7 +166,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         "axi_register/axi_register_rd.v",
         "axi_register/axi_register_wr.v",
         # pmp sources
-        # "pmp/include/riscv.sv",
         "pmp/pmp_entry.sv",
         "pmp/pmp.sv",
         # # pulp-platform source
@@ -218,7 +226,7 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         )
 
     else:
-        sim = cocotb_test.simulator.Icarus(
+        sim = cocotb_test.simulator.Simulator(
             toplevel=toplevel,
             module=module
         )
@@ -235,13 +243,3 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     sim.extra_env = extra_env
     sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/"]))
     sim.run()
-
-    # cocotb_test.simulator.run(
-    #     python_search=[tests_dir],
-    #     verilog_sources=verilog_sources,
-    #     toplevel=toplevel,
-    #     module=module,
-    #     parameters=parameters,
-    #     sim_build=sim_build,
-    #     extra_env=extra_env,
-    # )
