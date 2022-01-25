@@ -51,15 +51,15 @@ module axi_io_pmp #(
     // Waveform generation { Off=0, On=1 }
     parameter WAVES         = 0
 ) (
-    input  wire                     clk,
-    input  wire                     rst,
+    input  wire             clk,
+    input  wire             rst,
 
-  // slave port
-  input  axi_conf::req_t  slv_req_i,
-  output axi_conf::resp_t slv_resp_o,
-  // master port
-  output axi_conf::req_t  mst_req_o,
-  input  axi_conf::resp_t mst_resp_i
+    // slave port
+    input  axi_conf::req_t  slv_req_i,
+    output axi_conf::resp_t slv_resp_o,
+    // master port
+    output axi_conf::req_t  mst_req_o,
+    input  axi_conf::resp_t mst_resp_i
 );
 
     localparam PLEN        = 56; // rv64: 56, rv32: 34
@@ -82,23 +82,27 @@ module axi_io_pmp #(
     end
 
     pmp #(
-        .PLEN(PLEN),
-        .PMP_LEN(PMP_LEN),
-        .NR_ENTRIES(NR_ENTRIES)
+        .PLEN      ( PLEN       ),
+        .PMP_LEN   ( PMP_LEN    ),
+        .NR_ENTRIES( NR_ENTRIES )
     ) pmp0 (
-        // Input
-        .addr_i(slv_req_i.ar.addr[PLEN-1:0]),    // [PLEN-1:0]
-        .access_type_i(riscv::ACCESS_READ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
-        .priv_lvl_i(riscv::PRIV_LVL_S),     // riscv::priv_lvl_t, all accesses here are unprivileged
-        // Configuration
-        .conf_addr_i(cfg_addr_reg),         // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
-        .conf_i(cfg_reg),                   // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
-        // Output
-        .allow_o(pmp_allow)
+        // input
+        .addr_i       ( slv_req_i.ar.addr[PLEN-1:0] ), // [PLEN-1:0]
+        .access_type_i( riscv::ACCESS_READ          ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
+        .priv_lvl_i   ( riscv::PRIV_LVL_S           ), // riscv::priv_lvl_t, all accesses here are unprivileged
+        // configuration
+        .conf_addr_i  ( cfg_addr_reg                ), // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
+        .conf_i       ( cfg_reg                     ), // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
+        // output
+        .allow_o      ( pmp_allow                   )
     );
 
 
-axi_delayer #(
+    localparam Bypass = 1'b0;
+
+    axi_cut #(
+    // bypass enable
+    .Bypass(Bypass),
     // AXI channel structs
     .aw_chan_t(axi_conf::aw_chan_t),
     .w_chan_t(axi_conf::w_chan_t),
@@ -108,44 +112,16 @@ axi_delayer #(
     // AXI request & response structs
     .req_t(axi_conf::req_t),
     .resp_t(axi_conf::resp_t)
-
-) axi_delayer0 (
-  .clk_i(clk),      // Clock
-  .rst_ni(~rst),     // Asynchronous reset active low
-  // slave port
-  .slv_req_i(slv_req_i),
-  .slv_resp_o(slv_resp_o),
-  // master port
-  .mst_req_o(mst_req_o),
-  .mst_resp_i(mst_resp_i)
-);
-
-
-
-    localparam Bypass = 1'b0;
-
-    // axi_cut #(
-    // // bypass enable
-    // .Bypass(Bypass),
-    // // AXI channel structs
-    // .aw_chan_t(axi_conf::aw_chan_t),
-    // .w_chan_t(axi_conf::w_chan_t),
-    // .b_chan_t(axi_conf::b_chan_t),
-    // .ar_chan_t(axi_conf::ar_chan_t),
-    // .r_chan_t(axi_conf::r_chan_t),
-    // // AXI request & response structs
-    // .req_t(axi_conf::req_t),
-    // .resp_t(axi_conf::resp_t)
-    // ) axi_cut0 (
-    // .clk_i(clk),
-    // .rst_ni(~rst),
-    // // slave port
-    // .slv_req_i(slv_req_i),
-    // .slv_resp_o(slv_resp_o),
-    // // master port
-    // .mst_req_o(mst_req_o),
-    // .mst_resp_i(mst_resp_i)
-    // );
+    ) axi_cut0 (
+    .clk_i(clk),
+    .rst_ni(~rst),
+    // slave port
+    .slv_req_i(slv_req_i),
+    .slv_resp_o(slv_resp_o),
+    // master port
+    .mst_req_o(mst_req_o),
+    .mst_resp_i(mst_resp_i)
+    );
 
 
 
@@ -219,17 +195,5 @@ axi_delayer #(
     // .ready_i ( slv_req_i.r_ready  ),
     // .data_o  ( slv_resp_o.r       )
     // );
-
-    /*
-     * Simulation/Debugging
-     */
-   `ifdef COCOTB_SIM
-    initial begin
-        if(WAVES == 1) begin
-            $dumpfile("axi_io_pmp.vcd");
-            $dumpvars(0, axi_io_pmp);
-        end
-    end
-    `endif
 
 endmodule
