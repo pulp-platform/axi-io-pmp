@@ -15,8 +15,8 @@
 package axi_conf;
 
     localparam UserWidth    = 1;
-    localparam AddrWidth    = 32;
-    localparam DataWidth    = 32;
+    localparam AddrWidth    = 64;
+    localparam DataWidth    = 64;
     localparam StrbWidth    = DataWidth / 8;
     localparam IdWidth      = 8;
     localparam IdWidthSlave = IdWidth;
