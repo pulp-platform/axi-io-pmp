@@ -8,29 +8,38 @@ GUI ?= 0
 COCOTB_HDL_TIMEUNIT = 1ns
 COCOTB_HDL_TIMEPRECISION = 1ps
 
-DUT      = axi_io_pmp
+DUT      = dut
 TOPLEVEL = $(DUT)
 MODULE   = test_$(DUT)
 
+# toplevel
+VERILOG_SOURCES += ../src/$(DUT).sv
+VERILOG_SOURCES += ../src/axi_io_pmp.sv
 
-VERILOG_SOURCES += ../src/$(DUT).v
-
-VERILOG_SOURCES += ../src/axi_register/axi_register_wr.v
-VERILOG_SOURCES += ../src/axi_register/axi_register_rd.v
-
+# pulp-platform common_cells
+VERILOG_SOURCES += ../src/common_cells/src/cf_math_pkg.sv
 VERILOG_SOURCES += ../src/common_cells/src/lzc.sv
+VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
+VERILOG_SOURCES += ../src/common_cells/src/delta_counter.sv
+VERILOG_SOURCES += ../src/common_cells/src/counter.sv
+VERILOG_SOURCES += ../src/common_cells/src/stream_delay.sv
 
+# pulp-platform axi
+VERILOG_SOURCES += ../src/axi/src/axi_pkg.sv
+VERILOG_SOURCES += ../src/axi/src/axi_intf.sv
+VERILOG_SOURCES += ../src/axi/src/axi_cut.sv
+VERILOG_SOURCES += ../src/axi/src/axi_delayer.sv
+
+# axi connector
+VERILOG_SOURCES += ../src/connector/axi_conf.sv
+VERILOG_SOURCES += ../src/connector/axi_master_connector.sv
+VERILOG_SOURCES += ../src/connector/axi_slave_connector.sv
+
+# pmp sources
+VERILOG_SOURCES += ../src/pmp/include/riscv.sv
 VERILOG_SOURCES += ../src/pmp/pmp_entry.sv
 VERILOG_SOURCES += ../src/pmp/pmp.sv
 
-
-# VERILOG_SOURCES += ../src/common_cells/src/spill_register.sv
-# VERILOG_SOURCES += ../src/axi/include/axi/assign.svh
-# VERILOG_SOURCES += ../src/axi/include/axi/typedef.svh
-# VERILOG_SOURCES += ../src/axi/src/axi_pkg.sv
-# VERILOG_SOURCES += ../src/axi/src/axi_cut.sv
-# VERILOG_SOURCES += ../src/axi_conf.sv
-# VERILOG_SOURCES += ../src/axi_register.v
 
 REG_TYPE ?= 1 # { Bypass = 0, Registered = 1, Skid Buffer = 2}
 
@@ -59,8 +68,10 @@ export PARAM_R_REG_TYPE ?= $(REG_TYPE)
 ifeq ($(SIM), questa)
 
 	# verilog include dirs
-	EXTRA_ARGS += +incdir+../src/pmp/include
-	EXTRA_ARGS += +incdir+../src/common_cells/src
+	EXTRA_ARGS += +incdir+../src/pmp/include/
+	EXTRA_ARGS += +incdir+../src/common_cells/src/
+	EXTRA_ARGS += +incdir+../src/axi/include/
+	EXTRA_ARGS += +incdir+../src/connector/
 
 	# parameters
 	VSIM_ARGS += -GDATA_WIDTH=$(PARAM_DATA_WIDTH)
@@ -90,6 +101,13 @@ ifeq ($(SIM), questa)
 	VLOG_ARGS += -cover bcs
 	# output html report: vcover report -details -html axi_io_pmp.ucdb
 	#endif
+
+    COMPILE_ARGS += +define+DATA_WIDTH=PARAM_DATA_WIDTH
+    COMPILE_ARGS += +define+ADDR_WIDTH=PARAM_ADDR_WIDTH
+    COMPILE_ARGS += +define+STRB_WIDTH=PARAM_STRB_WIDTH
+    COMPILE_ARGS += +define+ID_WIDTH=PARAM_ID_WIDTH
+    COMPILE_ARGS += +define+USER_WIDTH=PARAM_AWUSER_WIDTH
+
 
 else ifeq ($(SIM), verilator)
 
