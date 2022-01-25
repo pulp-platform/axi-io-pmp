@@ -9,7 +9,8 @@
 // specific language governing permissions and limitations under the License.
 //
 // Author:      Andreas Kuster, <kustera@ethz.ch>
-// Description: Design under test (AXI IO-PMP)
+// Description: Design under test (AXI IO-PMP). Convert from AXI master/slave to 
+//              request/response pairs (pulp-platform) and feed them into DUT. 
 
 `timescale 1ns / 1ps
 
