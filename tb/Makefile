@@ -35,8 +35,8 @@ VERILOG_SOURCES += ../src/pmp/pmp.sv
 REG_TYPE ?= 1 # { Bypass = 0, Registered = 1, Skid Buffer = 2}
 
 # module parameters
-export PARAM_DATA_WIDTH ?= 32
-export PARAM_ADDR_WIDTH ?= 32
+export PARAM_DATA_WIDTH ?= 64
+export PARAM_ADDR_WIDTH ?= 64
 export PARAM_STRB_WIDTH ?= $(shell expr $(PARAM_DATA_WIDTH) / 8 )
 export PARAM_ID_WIDTH ?= 8
 export PARAM_AWUSER_ENABLE ?= 0
@@ -85,10 +85,10 @@ ifeq ($(SIM), questa)
 	VSIM_ARGS += -GWAVES=$(WAVES)
 
 	#ifeq($(COVERAGE), 1)
-		VSIM_ARGS += -coverage -coveranalysis -cvgperinstance
-		VSIM_ARGS += -do \"coverage save -codeAll -cvg -onexit $(DUT).ucdb;\"
-		VLOG_ARGS += -cover bcs
-		# output html report: vcover report -details -html axi_io_pmp.ucdb
+	VSIM_ARGS += -coverage -coveranalysis -cvgperinstance
+	VSIM_ARGS += -do \"coverage save -codeAll -cvg -onexit $(DUT).ucdb;\"
+	VLOG_ARGS += -cover bcs
+	# output html report: vcover report -details -html axi_io_pmp.ucdb
 	#endif
 
 else ifeq ($(SIM), verilator)
