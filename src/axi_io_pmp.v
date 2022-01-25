@@ -151,15 +151,14 @@ module axi_io_pmp #(
     input                    s_axi_rready
 );
 
-    localparam PLEN = 56;
-    localparam PMP_LEN = 54;
-    localparam NR_ENTRIES = 16;
+    localparam PLEN =        56;
+    localparam PMP_LEN =     54;
+    localparam NR_ENTRIES =  16;
     localparam MAX_ENTRIES = 16;
 
 
-    import riscv::*;
     logic [MAX_ENTRIES-1:0][PMP_LEN-1:0] cfg_addr_reg;
-    riscv::pmpcfg_t [MAX_ENTRIES-1:0] cfg_reg;
+    logic [$bits(riscv::pmpcfg_t)-1:0] [MAX_ENTRIES-1:0] cfg_reg;
 
     reg pmp_allow_reg;
     wire pmp_allow;
@@ -171,11 +170,11 @@ module axi_io_pmp #(
         for (int i = 0; i < MAX_ENTRIES; i = i + 1) begin
             cfg_addr_reg[i] = '0;
             cfg_reg[i] = '0;
-        end 
+        end
 
         //base = 16'habc0;
         //range = 16'h2000;
-        cfg_addr_reg[0] = {46'h0, 8'b0000_0001 }; // static 16byte range at addr 0..0, // (base + (range)) >> 2;, https://stackoverflow.com/questions/61807678/risc-v-pmp-address-configuration
+        cfg_addr_reg[0] = {46'h0, 8'b0000_0001 }; // static 16byte range at addr 0..0, // (base + (range)) >> 2;,
         cfg_reg[0] = (riscv::ACCESS_READ | riscv::ACCESS_WRITE | riscv::ACCESS_EXEC) | (riscv::NAPOT << 3);
     end
 

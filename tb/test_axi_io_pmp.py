@@ -1,7 +1,6 @@
 import os
 import logging
 import pytest
-import bitarray
 
 import cocotb
 import cocotb_test.simulator
@@ -10,6 +9,11 @@ from cocotb.clock import Clock
 from cocotb.regression import TestFactory
 from cocotb.triggers import RisingEdge
 from cocotbext.axi import AxiBus, AxiMaster, AxiRam
+
+import math
+from enum import Enum
+from bitarray import bitarray
+from bitarray.util import int2ba
 
 
 class TB:
@@ -44,6 +48,35 @@ class TB:
         await RisingEdge(self.dut.clk)
 
 
+class PMPMode(Enum):
+    OFF = bitarray("00")
+    TOR = bitarray("01")
+    NA4 = bitarray("10")
+    NAPOT = bitarray("11")
+
+
+class PMPAccess(Enum):
+    ACCESS_NONE = bitarray("000")
+    ACCESS_READ = bitarray("001")
+    ACCESS_WRITE = bitarray("010")
+    ACCESS_EXEC = bitarray("100")
+
+
+def set_pmp_napot(base: int, range: int, access: bitarray, PLEN=56):
+    # config
+    locked = bitarray("0")
+    reserved = bitarray("00")
+    mode = PMPMode.NAPOT.value
+    conf: bitarray = locked + reserved + mode + access
+
+    # address (NAPOT)
+    assert (2 ** math.log2(range) == range)  # check range is 2**X
+    address: bitarray = int2ba(int(base + (range / 2 - 1)) >> 2, PLEN)
+
+    # return (conf, addr) tuple
+    return conf, address
+
+
 async def run_test(dut):
     # get testbed instance
     tb = TB(dut)
@@ -51,27 +84,43 @@ async def run_test(dut):
     # reset dut
     await tb.cycle_reset()
 
+    ##################
     # write data to RAM (in order to have a deterministic value to read)
-    addr = 0x0000_000f # allowed range with address below: 0000_0000 - 0000_000f
-    length = 1
-    test_data = bytearray([x % 2**8 for x in range(length)])
+    ##################
+    addr = 0x0000_0000  # allowed range with address below: 0000_0000 - 0000_000f
+    length = 8
+    test_data = bytearray([x % 2 ** 8 for x in range(length)])
     tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())  # ("_", 1))
     tb.axi_ram.write(addr, test_data)
 
-
+    ###################
     # setup pmp entry
+    ###################
+    # config
+    locked = bitarray("0")
+    reserved = bitarray("00")
+    mode = PMPMode.NAPOT.value
+    access = PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value | PMPAccess.ACCESS_EXEC.value
+    conf: bitarray = locked + reserved + mode + access
+    tb.log.info("Before setting new conf reg: %s", tb.dut.cfg_reg.value[64:127])
+    tb.dut.cfg_reg.value[64:127] = conf.to01()
+    tb.log.info("After setting new conf reg:  %s", tb.dut.cfg_reg.value[64:127])
+    # address
+    PMP_LEN = tb.dut.PMP_LEN.value
+    napot_addr = int2ba(int(addr + (length / 2 - 1)) >> 2, PMP_LEN)
+    tb.log.info("Before setting new add_reg: %s", tb.dut.cfg_addr_reg.value[864 - PMP_LEN:863])
+    tb.dut.cfg_addr_reg.value[864 - PMP_LEN:863] = napot_addr.to01()
+    tb.log.info("After setting new add_reg:  %s", tb.dut.cfg_addr_reg.value[864 - PMP_LEN:863])
 
-    # at the moment, we do this directly in the sv code
-
-
+    ###########################
     # read data through the IO-PMP
+    ###########################
     data = await tb.axi_master.read(addr, length)
+    tb.log.info("PMP allow: %s", tb.dut.pmp0.allow_o.value)
 
-
-    tb.log.info("Exposed signals: %s", tb.dut.pmp0.allow_o.value)
-    #tb.log.info("TEST: pmp_allow %d", asdf)
-
+    ###################
     # check result
+    ###################
     assert data.data == test_data
 
 
@@ -88,16 +137,16 @@ if cocotb.SIM_NAME:
 
 
 @pytest.mark.parametrize("reg_type", [1])  # [None, 0, 1, 2]
-@pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64]
-@pytest.mark.parametrize("addr_width", [64])  # [8, 16, 32, 64]
-def test_axi_io_pmp(request, addr_width, data_width, reg_type):
+@pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64, 128]
+@pytest.mark.parametrize("addr_width", [64])  # [32, 64]
+@pytest.mark.parametrize("simulator", ["questa"])  # ["verilator", "questa"]
+def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     # extract & setup relevant information
     dut = "axi_io_pmp"
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     src_dir = os.path.abspath(os.path.join(tests_dir, '..', 'src'))
-    simulator = "questa"
 
     # verilog source list
     verilog_sources = [
@@ -108,7 +157,7 @@ def test_axi_io_pmp(request, addr_width, data_width, reg_type):
         "axi_register/axi_register_rd.v",
         "axi_register/axi_register_wr.v",
         # pmp sources
-        #"pmp/include/riscv.sv",
+        # "pmp/include/riscv.sv",
         "pmp/pmp_entry.sv",
         "pmp/pmp.sv",
         # # pulp-platform source
@@ -159,8 +208,8 @@ def test_axi_io_pmp(request, addr_width, data_width, reg_type):
             toplevel=toplevel,
             module=module
         )
-        # suppress some verilator specific warnings (i.e. missing timescale information, ..) 
-        sim.compile_args += ["-Wno-TIMESCALEMOD", "-Wno-WIDTH", "-Wno-UNOPT"] # -Wno-SELRANGE  -Wno-CASEINCOMPLETE
+        # suppress some verilator specific warnings (i.e. missing timescale information, ..)
+        sim.compile_args += ["-Wno-TIMESCALEMOD", "-Wno-WIDTH", "-Wno-UNOPT"]  # -Wno-SELRANGE  -Wno-CASEINCOMPLETE
 
     elif simulator == "questa":
         sim = cocotb_test.simulator.Questa(
@@ -184,7 +233,7 @@ def test_axi_io_pmp(request, addr_width, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
-    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir,x)), [ "pmp/include/", "common_cells/src/"]))
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/"]))
     sim.run()
 
     # cocotb_test.simulator.run(
