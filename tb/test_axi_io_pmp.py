@@ -10,13 +10,19 @@ from cocotb.regression import TestFactory
 from cocotb.triggers import RisingEdge
 from cocotbext.axi import AxiBus, AxiMaster, AxiRam
 
+import math
+from enum import Enum
+from bitarray import bitarray
+from bitarray.util import int2ba, ba2int
+
 
 class TB:
 
     def __init__(self, dut):
         # activate for remote debugging
-        # import pydevd_pycharm
-        # pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
+        if "REMOTE" in os.environ:
+            import pydevd_pycharm
+            pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
 
         self.dut = dut
 
@@ -43,6 +49,35 @@ class TB:
         await RisingEdge(self.dut.clk)
 
 
+class PMPMode(Enum):
+    OFF = bitarray("00")
+    TOR = bitarray("01")
+    NA4 = bitarray("10")
+    NAPOT = bitarray("11")
+
+
+class PMPAccess(Enum):
+    ACCESS_NONE = bitarray("000")
+    ACCESS_READ = bitarray("001")
+    ACCESS_WRITE = bitarray("010")
+    ACCESS_EXEC = bitarray("100")
+
+
+def set_pmp_napot(base: int, range: int, access: bitarray, PMP_LEN=54):
+    # config
+    locked = bitarray("0")
+    reserved = bitarray("00")
+    mode = PMPMode.NAPOT.value
+    conf: bitarray = locked + reserved + mode + access
+
+    # address (NAPOT)
+    assert (2 ** math.log2(range) == range)  # check range is 2**X
+    address: bitarray = int2ba(int(base + (range / 2 - 1)) >> 2, PMP_LEN)
+
+    # return (conf, addr) tuple
+    return conf, address
+
+
 async def run_test(dut):
     # get testbed instance
     tb = TB(dut)
@@ -50,17 +85,49 @@ async def run_test(dut):
     # reset dut
     await tb.cycle_reset()
 
+    ##################
     # write data to RAM (in order to have a deterministic value to read)
-    addr = 0x0000
-    length = 8
-    test_data = bytearray([x % 256 for x in range(length)])
-    tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex("_", 1))
+    ##################
+    addr = 0x0000_0000  # allowed range with address below: 0000_0000 - 0000_000f
+    length = 1
+    test_data = bytearray([x % 2 ** 8 for x in range(length)])
+    tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())  # ("_", 1))
     tb.axi_ram.write(addr, test_data)
 
-    # read data through the IO-PMP
-    data = await tb.axi_master.read(addr, length)
+    ###################
+    # setup pmp entry
+    ###################
+    tb.log.info("Before setting new conf reg: %s", tb.dut.axi_io_pmp0.cfg_reg[0].value)
+    tb.log.info("Before setting new add_reg: %s", tb.dut.axi_io_pmp0.cfg_addr_reg[0].value)
 
+    # config
+    locked = bitarray("0")
+    reserved = bitarray("00")
+    mode = PMPMode.NAPOT.value
+    access = PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value | PMPAccess.ACCESS_EXEC.value
+    conf: bitarray = locked + reserved + mode + access
+    dut.axi_io_pmp0.cfg_reg[0].value = ba2int(conf)
+    # address
+    PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
+    napot_addr = int2ba(int(addr + (32 / 2 - 1)) >> 2, PMP_LEN)
+    tb.log.info("NAPOT addr: %s", napot_addr.to01())
+
+    dut.axi_io_pmp0.cfg_addr_reg[0].value = ba2int(napot_addr)
+
+    await RisingEdge(dut.clk)
+
+    tb.log.info("After setting new conf reg:  %s", tb.dut.axi_io_pmp0.cfg_reg[0].value)
+    tb.log.info("After setting new add_reg:  %s", tb.dut.axi_io_pmp0.cfg_addr_reg[0].value)
+
+    ##########################
+    # read data through the IO-PMP
+    ###########################
+    data = await tb.axi_master.read(addr, length)
+    tb.log.info("PMP allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+
+    ###################
     # check result
+    ###################
     assert data.data == test_data
 
 
@@ -77,34 +144,48 @@ if cocotb.SIM_NAME:
 
 
 @pytest.mark.parametrize("reg_type", [1])  # [None, 0, 1, 2]
-@pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64]
-def test_axi_io_pmp(request, data_width, reg_type):
+@pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64, 128]
+@pytest.mark.parametrize("addr_width", [64])  # [32, 64]
+@pytest.mark.parametrize("simulator", ["questa"])  # ["verilator", "questa"]
+def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     # extract & setup relevant information
-    dut = "axi_io_pmp"
+    dut = "dut"
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     src_dir = os.path.abspath(os.path.join(tests_dir, '..', 'src'))
-    simulator = "icarus"
 
     # verilog source list
     verilog_sources = [
+
+        # pulp-platform common_cells
+        "common_cells/src/cf_math_pkg.sv",
+        "common_cells/src/lzc.sv",
+        "common_cells/src/spill_register.sv",
+        "common_cells/src/delta_counter.sv",
+        "common_cells/src/counter.sv",
+        "common_cells/src/stream_delay.sv",
+
+        # pulp-platform axi
+        "axi/src/axi_pkg.sv",
+        "axi/src/axi_intf.sv",
+        "axi/src/axi_cut.sv",
+        "axi/src/axi_delayer.sv",
+
+        # axi connector
+        "connector/axi_conf.sv",
+        "connector/axi_master_connector.sv",
+        "connector/axi_slave_connector.sv",
+
+        # pmp sources
+        "pmp/include/riscv.sv",
+        "pmp/pmp_entry.sv",
+        "pmp/pmp.sv",
+
         # toplevel
-        f"{dut}.v",
-        # LibreCores source
-        "axi_register/axi_register.v",
-        "axi_register/axi_register_rd.v",
-        "axi_register/axi_register_wr.v",
-        # # pulp-platform source
-        # "axi/include/axi/assign.svh",
-        # "axi/include/axi/typedef.svh",
-        # "common_cells/src/spill_register.sv",
-        # "axi/src/axi_pkg.sv",
-        # "axi/src/axi_cut.sv",
-        # # axi connector
-        # "connector/axi_conf.sv",
-        # "connector/axi_master_connector.v",
-        # "connector/axi_slave_connector.v"
+        "axi_io_pmp.sv",
+        f"{dut}.sv",
+
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
@@ -118,7 +199,7 @@ def test_axi_io_pmp(request, data_width, reg_type):
     # AXI parameters
     parameters = {
         'DATA_WIDTH': data_width,
-        'ADDR_WIDTH': 32,
+        'ADDR_WIDTH': addr_width,
         'STRB_WIDTH': data_width // 8,
         'ID_WIDTH': 8,
         'AWUSER_ENABLE': 0,
@@ -130,7 +211,8 @@ def test_axi_io_pmp(request, data_width, reg_type):
         'ARUSER_ENABLE': 0,
         'ARUSER_WIDTH': 1,
         'RUSER_ENABLE': 0,
-        'RUSER_WIDTH': 1
+        'RUSER_WIDTH': 1,
+        'REG_TYPE': reg_type
     }
     extra_env = {f'PARAM_{k}': str(v) for k, v in parameters.items()}
 
@@ -141,17 +223,29 @@ def test_axi_io_pmp(request, data_width, reg_type):
             toplevel=toplevel,
             module=module
         )
+        # suppress some verilator specific warnings (i.e. missing timescale information, ..)
+        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD",  "-Wno-CASEINCOMPLETE", "-Wno-WIDTH",  "-Wno-SELRANGE"]
 
-        # add wave generation
-        extra_env.append("--trace -fst")
-        parameters["WAVES"] = 0
-
-    else:
-        sim = cocotb_test.simulator.Icarus(
+    elif simulator == "questa":
+        sim = cocotb_test.simulator.Questa(
             toplevel=toplevel,
             module=module
         )
-        parameters["WAVES"] = 1
+        sim.compile_args += [
+            f"+define+DATA_WIDTH={parameters['DATA_WIDTH']}",
+            f"+define+ADDR_WIDTH={parameters['ADDR_WIDTH']}", 
+            f"+define+STRB_WIDTH={parameters['STRB_WIDTH']}", 
+            f"+define+ID_WIDTH={parameters['ID_WIDTH']}"
+            f"+define+USER_WIDTH={parameters['AWUSER_WIDTH']}"]
+
+    else:
+        sim = cocotb_test.simulator.Simulator(
+            toplevel=toplevel,
+            module=module
+        )
+
+    # add wave generation
+    parameters["WAVES"] = 1
 
     sim.python_search = [tests_dir]
     sim.verilog_sources = verilog_sources
@@ -160,14 +254,5 @@ def test_axi_io_pmp(request, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/", "axi/include/", "connector/"]))
     sim.run()
-
-    # cocotb_test.simulator.run(
-    #     python_search=[tests_dir],
-    #     verilog_sources=verilog_sources,
-    #     toplevel=toplevel,
-    #     module=module,
-    #     parameters=parameters,
-    #     sim_build=sim_build,
-    #     extra_env=extra_env,
-    # )

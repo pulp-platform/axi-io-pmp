@@ -10,16 +10,23 @@
 //
 // Author:      Florian Zaruba <zarubaf@iis.ee.ethz.ch>
 //              Andreas Kuster, <kustera@ethz.ch>
-// Description: Minimal AXI config (adapted from openhwgroup:cva6 ariane_axi_soc_pkg.sv)
+// Description: Minimal AXI configuration (adapted from openhwgroup:cva6 ariane_axi_soc_pkg.sv)
 
 package axi_conf;
 
-    localparam UserWidth    = 1;
-    localparam AddrWidth    = 32;
-    localparam DataWidth    = 32;
-    localparam StrbWidth    = DataWidth / 8;
-    localparam IdWidth      = 8;
-    localparam IdWidthSlave = IdWidth;
+    typedef enum { RESP_OKAY   = 2'b00, // normal access success
+                   RESP_EXOKAY = 2'b01, // exclusive access okay
+                   RESP_SLVERR = 2'b10, // slave error
+                   RESP_DECERR = 2'b11  // decode error
+                   } axi_trans_resp_t;
+
+    // set these values using i.e. +define+VAR=VAL in questasim
+    localparam UserWidth    = `USER_WIDTH;
+    localparam AddrWidth    = `ADDR_WIDTH;
+    localparam DataWidth    = `DATA_WIDTH;
+    localparam StrbWidth    = `STRB_WIDTH;
+    localparam IdWidth      = `ID_WIDTH;
+    localparam IdWidthSlave = `ID_WIDTH;
 
     typedef logic [IdWidth-1:0]      id_t;
     typedef logic [IdWidthSlave-1:0] id_slv_t;

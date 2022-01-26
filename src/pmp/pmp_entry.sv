@@ -12,6 +12,8 @@
 // Date: 2.10.2019
 // Description: single PMP entry
 
+`timescale 1ns / 1ps
+
 module pmp_entry #(
     parameter int unsigned PLEN = 56,
     parameter int unsigned PMP_LEN = 54

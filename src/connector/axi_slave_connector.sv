@@ -89,7 +89,7 @@ module axi_slave_connector #(
     output                     s_axi_rlast,
     output [RUSER_WIDTH-1:0]   s_axi_ruser,
     output                     s_axi_rvalid,
-    input                      s_axi_rready
+    input                      s_axi_rready,
     /*
      * AXI request/response pair
      */
