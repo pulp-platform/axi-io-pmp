@@ -157,20 +157,16 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
 
     # verilog source list
     verilog_sources = [
-
         # pulp-platform common_cells
         "common_cells/src/cf_math_pkg.sv",
         "common_cells/src/lzc.sv",
+        "common_cells/src/spill_register_flushable.sv",
         "common_cells/src/spill_register.sv",
-        "common_cells/src/delta_counter.sv",
-        "common_cells/src/counter.sv",
-        "common_cells/src/stream_delay.sv",
 
         # pulp-platform axi
         "axi/src/axi_pkg.sv",
         "axi/src/axi_intf.sv",
         "axi/src/axi_cut.sv",
-        "axi/src/axi_delayer.sv",
 
         # axi connector
         "connector/axi_conf.sv",
@@ -185,7 +181,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         # toplevel
         "axi_io_pmp.sv",
         f"{dut}.sv",
-
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
@@ -254,5 +249,5 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
-    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/", "axi/include/", "connector/"]))
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/",  "axi/include/"]))
     sim.run()
