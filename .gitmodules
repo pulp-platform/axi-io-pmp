@@ -4,3 +4,6 @@
 [submodule "src/common_cells"]
 	path = src/common_cells
 	url = https://github.com/pulp-platform/common_cells.git
+[submodule "src/register_interface"]
+	path = src/register_interface
+	url = https://github.com/pulp-platform/register_interface
