@@ -319,8 +319,8 @@ module dut #(
         .REG_TYPE     ( REG_TYPE      ),
         .WAVES        ( WAVES         )
     ) axi_io_pmp0 (
-        .clk       ( clk          ),
-        .rst       ( rst          ),
+        .clk_i     ( clk          ),
+        .rst_ni    ( ~rst         ),
         .slv_req_i ( s_axi_req_o  ),
         .slv_resp_o( s_axi_resp_i ), 
         .mst_req_o ( m_axi_req_i  ),

@@ -51,9 +51,8 @@ module axi_io_pmp #(
     // Waveform generation { Off=0, On=1 }
     parameter WAVES         = 0
 ) (
-    input  wire             clk,
-    input  wire             rst,
-
+    input                   clk_i,
+    input                   rst_ni,
     // slave port
     input  axi_conf::req_t  slv_req_i,
     output axi_conf::resp_t slv_resp_o,
@@ -130,8 +129,8 @@ module axi_io_pmp #(
     .T       ( axi_conf::aw_chan_t ),
     .Bypass  ( Bypass              )
     ) i_reg_aw (
-    .clk_i   ( clk                 ),
-    .rst_ni  ( ~rst                ),
+    .clk_i   ( clk_i               ),
+    .rst_ni  ( rst_ni              ),
     .valid_i ( slv_req_i.aw_valid  ),
     .ready_o ( slv_resp_o.aw_ready ),
     .data_i  ( slv_req_i.aw        ),
@@ -144,8 +143,8 @@ module axi_io_pmp #(
     .T       ( axi_conf::w_chan_t ),
     .Bypass  ( Bypass             )
     ) i_reg_w  (
-    .clk_i   ( clk                ),
-    .rst_ni  ( ~rst               ),
+    .clk_i   ( clk_i              ),
+    .rst_ni  ( rst_ni             ),
     .valid_i ( slv_req_i.w_valid  ),
     .ready_o ( slv_resp_o.w_ready ),
     .data_i  ( slv_req_i.w        ),
@@ -158,8 +157,8 @@ module axi_io_pmp #(
     .T       ( axi_conf::b_chan_t ),
     .Bypass  ( Bypass             )
     ) i_reg_b  (
-    .clk_i   ( clk                ),
-    .rst_ni  ( ~rst               ),
+    .clk_i   ( clk_i              ),
+    .rst_ni  ( rst_ni             ),
     .valid_i ( mst_resp_i.b_valid ),
     .ready_o ( mst_req_o.b_ready  ),
     .data_i  ( mst_resp_i.b       ),
@@ -175,8 +174,8 @@ module axi_io_pmp #(
     .T       ( axi_conf::ar_chan_t ),
     .Bypass  ( Bypass              )
     ) i_reg_ar (
-    .clk_i   ( clk                 ),
-    .rst_ni  ( ~rst                ),
+    .clk_i   ( clk_i               ),
+    .rst_ni  ( rst_ni              ),
     .valid_i ( slv_req_i.ar_valid  ),
     .ready_o ( slv_resp_o.ar_ready ),
     .data_i  ( slv_req_i.ar        ),
@@ -197,8 +196,8 @@ module axi_io_pmp #(
     .T       ( axi_conf::r_chan_t ),
     .Bypass  ( Bypass             )
     ) i_reg_r  (
-    .clk_i   ( clk                ),
-    .rst_ni  ( ~rst               ),
+    .clk_i   ( clk_i              ),
+    .rst_ni  ( rst_ni             ),
     .valid_i ( mst_resp_i.r_valid ),
     .ready_o ( mst_req_o.r_ready  ),
     .data_i  ( r_chan             ), // mst_resp_i.r 
