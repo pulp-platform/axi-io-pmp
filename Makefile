@@ -9,19 +9,22 @@
 # specific language governing permissions and limitations under the License.
 #
 # Author:      Andreas Kuster, <kustera@ethz.ch>
-# Description: TODO
+# Description: General targets from setup to simulation and cleanup
 
 SHELL := /bin/bash
 
 .PHONY: clean
 
-all: bender_intall bender_gen_src sim
+all: bender_intall bender_gen_src sim wave
 
 setup_env:
 	source ./setup_env.sh
 
 sim:
 	pytest tb/
+
+wave:
+	gtkwave sim_build/axi_io_pmp.vcd
 
 bender_install:
 	curl --proto '=https' --tlsv1.2 https://pulp-platform.github.io/bender/init -sSf | sh
@@ -31,3 +34,4 @@ bender_gen_src:
 
 clean:
 	rm -rf bender
+	rm -rf sim_build .pytest_cache transcript
