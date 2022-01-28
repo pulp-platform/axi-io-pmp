@@ -15,7 +15,7 @@ SHELL := /bin/bash
 
 .PHONY: clean
 
-all: bender_intall bender_gen_src sim wave
+all: bender_install bender_gen_src sim wave
 
 setup_env:
 	source ./setup_env.sh
@@ -33,5 +33,5 @@ bender_gen_src:
 	./bender script flist --relative-path --exclude axi --exclude common_cells --exclude register_interface > src.list
 
 clean:
-	rm -rf bender
+	rm -rf bender Bender.lock
 	rm -rf sim_build .pytest_cache transcript
