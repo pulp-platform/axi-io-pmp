@@ -11,6 +11,8 @@
 // Author:      Andreas Kuster, <kustera@ethz.ch>
 // Description: AXI slave to (req_t, resp_t) pair connector (pulp-platform interface)
 
+`timescale 1ns / 1ps
+
 module axi_slave_connector #(
     // Width of data bus in bits
     parameter DATA_WIDTH   = 32,
