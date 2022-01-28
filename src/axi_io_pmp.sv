@@ -11,61 +11,85 @@
 // Author:      Andreas Kuster, <kustera@ethz.ch>
 // Description: Traditional style AXI IO-PMP module
 
-
 `timescale 1ns / 1ps
-
-//`include "riscv.sv"
-//`include "cf_math_pkg.sv"
 
 module axi_io_pmp #(
     // Width of data bus in bits
-    parameter DATA_WIDTH    = 64,
+    parameter DATA_WIDTH     = 64,
     // Width of address bus in bits
-    parameter ADDR_WIDTH    = 64,
+    parameter ADDR_WIDTH     = 64,
     // Width of strobe (width of data bus in words)
-    parameter STRB_WIDTH    = (DATA_WIDTH / 8),
+    parameter STRB_WIDTH     = (DATA_WIDTH / 8),
     // Width of id signal
-    parameter ID_WIDTH      = 8,
+    parameter ID_WIDTH       = 8,
     // Propagate awuser signal
-    parameter AWUSER_ENABLE = 0,
+    parameter AWUSER_ENABLE  = 0,
     // Width of awuser signal
-    parameter AWUSER_WIDTH  = 1,
+    parameter AWUSER_WIDTH   = 1,
     // Propagate wuser signal
-    parameter WUSER_ENABLE  = 0,
+    parameter WUSER_ENABLE   = 0,
     // Width of wuser signal
-    parameter WUSER_WIDTH   = 1,
+    parameter WUSER_WIDTH    = 1,
     // Propagate buser signal
-    parameter BUSER_ENABLE  = 0,
+    parameter BUSER_ENABLE   = 0,
     // Width of buser signal
-    parameter BUSER_WIDTH   = 1,
+    parameter BUSER_WIDTH    = 1,
     // Propagate aruser signal
-    parameter ARUSER_ENABLE = 0,
+    parameter ARUSER_ENABLE  = 0,
     // Width of aruser signal
-    parameter ARUSER_WIDTH  = 1,
+    parameter ARUSER_WIDTH   = 1,
     // Propagate ruser signal
-    parameter RUSER_ENABLE  = 0,
+    parameter RUSER_ENABLE   = 0,
     // Width of ruser signal
-    parameter RUSER_WIDTH   = 1,
+    parameter RUSER_WIDTH    = 1,
     // register type { Bypass = 0, Registered = 1, Skid Buffer = 2}
-    parameter REG_TYPE      = 1,
+    parameter REG_TYPE       = 1,
     // Waveform generation { Off=0, On=1 }
-    parameter WAVES         = 0
+    parameter WAVES          = 0,
+    // register interface types
+    parameter type axi_req_t = logic,
+    parameter type axi_rsp_t = logic,
+    // register interface types
+    parameter type reg_req_t = logic,
+    parameter type reg_rsp_t = logic
 ) (
-    input                   clk_i,
-    input                   rst_ni,
+    input            clk_i,
+    input            rst_ni,
     // slave port
-    input  axi_conf::req_t  slv_req_i,
-    output axi_conf::resp_t slv_resp_o,
+    input  axi_req_t slv_req_i,
+    output axi_rsp_t slv_resp_o,
     // master port
-    output axi_conf::req_t  mst_req_o,
-    input  axi_conf::resp_t mst_resp_i
+    output axi_req_t mst_req_o,
+    input  axi_rsp_t mst_resp_i,
+    // configuration port
+    input  reg_req_t cfg_req_i,
+    output reg_rsp_t cfg_resp_o
 );
+
+    /*
+     * Device configuration and status registers
+     */
+    io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
+    io_pmp_reg_top #(
+        .AW       ( ADDR_WIDTH    ),
+        .reg_req_t( reg_req_t     ),
+        .reg_rsp_t( reg_rsp_t     )
+    ) io_pmp_reg_top0 (
+        .clk_i    ( clk_i         ),
+        .rst_ni   ( rst_ni        ),
+        .devmode_i( 1'b0          ), // if 1, explicit error return for unmapped register access
+        // register interface
+        .reg_req_i( cfg_req_i     ),
+        .reg_rsp_o( cfg_resp_o    ),
+        // to HW
+        .reg2hw   ( io_pmp_reg2hw ) // from registers to hardware
+    ); 
+
 
     localparam PLEN        = 56; // rv64: 56, rv32: 34
     localparam PMP_LEN     = 54; // rv64: 54, rv32: 32
     localparam NR_ENTRIES  = 16;
     localparam MAX_ENTRIES = 16;
-
 
     logic [MAX_ENTRIES-1:0][PMP_LEN-1:0] cfg_addr_reg;
     logic [$bits(riscv::pmpcfg_t)-1:0] [MAX_ENTRIES-1:0] cfg_reg;
@@ -75,8 +99,8 @@ module axi_io_pmp #(
     initial begin
         // reset all entries
         for (int i = 0; i < MAX_ENTRIES; i = i + 1) begin
-            cfg_addr_reg[i] = '0;
-            cfg_reg[i]      = '0;
+            cfg_addr_reg[i] = { PMP_LEN{1'b0} };
+            cfg_reg[i]      = { $bits(riscv::pmpcfg_t){1'b0} };
         end
     end
 
@@ -93,8 +117,8 @@ module axi_io_pmp #(
         .access_type_i( riscv::ACCESS_READ          ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
         .priv_lvl_i   ( riscv::PRIV_LVL_S           ), // riscv::priv_lvl_t, all accesses here are unprivileged
         // configuration
-        .conf_addr_i  ( cfg_addr_reg                ), // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
-        .conf_i       ( cfg_reg                     ), // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
+        .conf_addr_i  ( io_pmp_reg2hw.pmp_addr      ), // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
+        .conf_i       ( io_pmp_reg2hw.pmp_cfg       ), // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
         // output
         .allow_o      ( pmp_allow                   )
     );
@@ -117,8 +141,6 @@ module axi_io_pmp #(
     //     // output
     //     .allow_o      ( pmp_allow                   )
     // );
-
-
 
     localparam Bypass = 1'b1;
 
