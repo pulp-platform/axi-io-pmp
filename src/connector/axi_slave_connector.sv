@@ -15,23 +15,26 @@
 
 module axi_slave_connector #(
     // Width of data bus in bits
-    parameter DATA_WIDTH   = 32,
+    parameter DATA_WIDTH     = 32,
     // Width of address bus in bits
-    parameter ADDR_WIDTH   = 32,
+    parameter ADDR_WIDTH     = 32,
     // Width of strobe (width of data bus in words)
-    parameter STRB_WIDTH   = (DATA_WIDTH / 8),
+    parameter STRB_WIDTH     = (DATA_WIDTH / 8),
     // Width of id signal
-    parameter ID_WIDTH     = 8,
+    parameter ID_WIDTH       = 8,
     // Width of awuser signal
-    parameter AWUSER_WIDTH = 1,
+    parameter AWUSER_WIDTH   = 1,
     // Width of wuser signal
-    parameter WUSER_WIDTH  = 1,
+    parameter WUSER_WIDTH    = 1,
     // Width of buser signal
-    parameter BUSER_WIDTH  = 1,
+    parameter BUSER_WIDTH    = 1,
     // Width of aruser signal
-    parameter ARUSER_WIDTH = 1,
+    parameter ARUSER_WIDTH   = 1,
     // Width of ruser signal
-    parameter RUSER_WIDTH  = 1
+    parameter RUSER_WIDTH    = 1,
+    // AXI request/response
+    parameter type axi_req_t = logic,
+    parameter type axi_rsp_t = logic
 ) (
     /*
      * Write address channel
@@ -95,8 +98,8 @@ module axi_slave_connector #(
     /*
      * AXI request/response pair
      */
-    output axi_conf::req_t     axi_req_o,
-    input  axi_conf::resp_t    axi_resp_i
+    output axi_req_t           axi_req_o,
+    input  axi_rsp_t           axi_resp_i
 );
 
     /*

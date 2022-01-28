@@ -211,39 +211,38 @@ module dut #(
     input                    cfg_axi_rready  
 );
 
+    /*
+     * Master/slave (AXI) and register interface request/response structs
+     */
     `REG_BUS_TYPEDEF_ALL(iopmp_reg, logic[ADDR_WIDTH-1:0], logic[DATA_WIDTH-1:0], logic[STRB_WIDTH-1:0]) // name, addr_t, data_t, strb_t
     iopmp_reg_req_t cfg_reg_req_o;
     iopmp_reg_rsp_t cfg_reg_rsp_i;
 
-    //
-    // Usage Example:
-    // `AXI_TYPEDEF_ALL(axi, addr_t, id_t, data_t, strb_t, user_t)
-    //
-    // This defines `axi_req_t` and `axi_resp_t` request/response structs as well as `axi_aw_chan_t`,
-    // `axi_w_chan_t`, `axi_b_chan_t`, `axi_ar_chan_t`, and `axi_r_chan_t` channel structs.
-    // `AXI_TYPEDEF_ALL(iopmp_axi, logic[ADDR_WIDTH-1:0], logic[DATA_WIDTH-1:0], logic[STRB_WIDTH-1:0], logic[AWUSER_WIDTH-1:0]) // name, __addr_t, __id_t, __data_t, __strb_t, __user_t) 
-    // iopmp_axi_req_t m_axi_req_i,  s_axi_req_o,  cfg_axi_req_o;
-    // iopmp_axi_resp_t m_axi_resp_o, s_axi_resp_i, cfg_axi_resp_i;
-
-    /*
-     * Master/slave request/response structs
-     */
-    axi_conf::req_t  m_axi_req_i,  s_axi_req_o,  cfg_axi_req_o;
-    axi_conf::resp_t m_axi_resp_o, s_axi_resp_i, cfg_axi_resp_i;
+    `AXI_TYPEDEF_AW_CHAN_T(iopmp_axi_aw_chan_t, logic[ADDR_WIDTH-1:0], logic[ID_WIDTH-1:0], logic[AWUSER_WIDTH-1:0])
+    `AXI_TYPEDEF_W_CHAN_T(iopmp_axi_w_chan_t, logic[DATA_WIDTH-1:0], logic[STRB_WIDTH-1:0], logic[AWUSER_WIDTH-1:0])
+    `AXI_TYPEDEF_B_CHAN_T(iopmp_axi_b_chan_t, logic[ID_WIDTH-1:0], logic[AWUSER_WIDTH-1:0])
+    `AXI_TYPEDEF_AR_CHAN_T(iopmp_axi_ar_chan_t, logic[ADDR_WIDTH-1:0], logic[ID_WIDTH-1:0], logic[AWUSER_WIDTH-1:0])
+    `AXI_TYPEDEF_R_CHAN_T(iopmp_axi_r_chan_t, logic[DATA_WIDTH-1:0], logic[ID_WIDTH-1:0], logic[AWUSER_WIDTH-1:0])
+    `AXI_TYPEDEF_REQ_T(iopmp_axi_req_t, iopmp_axi_aw_chan_t, iopmp_axi_w_chan_t, iopmp_axi_ar_chan_t)
+    `AXI_TYPEDEF_RESP_T(iopmp_axi_resp_t, iopmp_axi_b_chan_t, iopmp_axi_r_chan_t)
+    iopmp_axi_req_t  m_axi_req_i,  s_axi_req_o,  cfg_axi_req_o;
+    iopmp_axi_resp_t m_axi_resp_o, s_axi_resp_i, cfg_axi_resp_i;
 
     /*
      * Traditional AXI slave signal to (req/resp) pair conversion
      */ 
     axi_slave_connector #(
-        .DATA_WIDTH    ( DATA_WIDTH   ),
-        .ADDR_WIDTH    ( ADDR_WIDTH   ),
-        .STRB_WIDTH    ( STRB_WIDTH   ),
-        .ID_WIDTH      ( ID_WIDTH     ),
-        .AWUSER_WIDTH  ( AWUSER_WIDTH ),
-        .WUSER_WIDTH   ( WUSER_WIDTH  ),
-        .BUSER_WIDTH   ( BUSER_WIDTH  ),
-        .ARUSER_WIDTH  ( ARUSER_WIDTH ),
-        .RUSER_WIDTH   ( RUSER_WIDTH  )
+        .DATA_WIDTH  ( DATA_WIDTH       ),
+        .ADDR_WIDTH  ( ADDR_WIDTH       ),
+        .STRB_WIDTH  ( STRB_WIDTH       ),
+        .ID_WIDTH    ( ID_WIDTH         ),
+        .AWUSER_WIDTH( AWUSER_WIDTH     ),
+        .WUSER_WIDTH ( WUSER_WIDTH      ),
+        .BUSER_WIDTH ( BUSER_WIDTH      ),
+        .ARUSER_WIDTH( ARUSER_WIDTH     ),
+        .RUSER_WIDTH ( RUSER_WIDTH      ),
+        .axi_req_t   ( iopmp_axi_req_t  ),
+        .axi_rsp_t   ( iopmp_axi_resp_t )
     ) slave_connector0 (
         /*
          * AXI signals
@@ -300,15 +299,17 @@ module dut #(
     );
 
     axi_slave_connector #(
-        .DATA_WIDTH    ( DATA_WIDTH   ),
-        .ADDR_WIDTH    ( ADDR_WIDTH   ),
-        .STRB_WIDTH    ( STRB_WIDTH   ),
-        .ID_WIDTH      ( ID_WIDTH     ),
-        .AWUSER_WIDTH  ( AWUSER_WIDTH ),
-        .WUSER_WIDTH   ( WUSER_WIDTH  ),
-        .BUSER_WIDTH   ( BUSER_WIDTH  ),
-        .ARUSER_WIDTH  ( ARUSER_WIDTH ),
-        .RUSER_WIDTH   ( RUSER_WIDTH  )
+        .DATA_WIDTH  ( DATA_WIDTH       ),
+        .ADDR_WIDTH  ( ADDR_WIDTH       ),
+        .STRB_WIDTH  ( STRB_WIDTH       ),
+        .ID_WIDTH    ( ID_WIDTH         ),
+        .AWUSER_WIDTH( AWUSER_WIDTH     ),
+        .WUSER_WIDTH ( WUSER_WIDTH      ),
+        .BUSER_WIDTH ( BUSER_WIDTH      ),
+        .ARUSER_WIDTH( ARUSER_WIDTH     ),
+        .RUSER_WIDTH ( RUSER_WIDTH      ),
+        .axi_req_t   ( iopmp_axi_req_t  ),
+        .axi_rsp_t   ( iopmp_axi_resp_t )
     ) slave_connector1 (
         /*
          * AXI signals
@@ -368,15 +369,17 @@ module dut #(
      * Traditional AXI master signal to (req/resp) pair conversion
      */ 
     axi_master_connector #(
-        .DATA_WIDTH  ( DATA_WIDTH   ),
-        .ADDR_WIDTH  ( ADDR_WIDTH   ),
-        .STRB_WIDTH  ( STRB_WIDTH   ),
-        .ID_WIDTH    ( ID_WIDTH     ),
-        .AWUSER_WIDTH( AWUSER_WIDTH ),
-        .WUSER_WIDTH ( WUSER_WIDTH  ),
-        .BUSER_WIDTH ( BUSER_WIDTH  ),
-        .ARUSER_WIDTH( ARUSER_WIDTH ),
-        .RUSER_WIDTH ( RUSER_WIDTH  )
+        .DATA_WIDTH  ( DATA_WIDTH       ),
+        .ADDR_WIDTH  ( ADDR_WIDTH       ),
+        .STRB_WIDTH  ( STRB_WIDTH       ),
+        .ID_WIDTH    ( ID_WIDTH         ),
+        .AWUSER_WIDTH( AWUSER_WIDTH     ),
+        .WUSER_WIDTH ( WUSER_WIDTH      ),
+        .BUSER_WIDTH ( BUSER_WIDTH      ),
+        .ARUSER_WIDTH( ARUSER_WIDTH     ),
+        .RUSER_WIDTH ( RUSER_WIDTH      ),
+        .axi_req_t   ( iopmp_axi_req_t  ),
+        .axi_rsp_t   ( iopmp_axi_resp_t )
     ) master_connector0 (
         /*
          * AXI signals
@@ -432,7 +435,6 @@ module dut #(
         .axi_resp_o    ( m_axi_resp_o   )
     );
 
-
     /*
      * Register bus interface (for the pmp configuration)
      */
@@ -446,9 +448,9 @@ module dut #(
         // width of the user signal.
         .USER_WIDTH( AWUSER_WIDTH     ),
         // AXI request struct type
-        .axi_req_t ( axi_conf::req_t  ),
+        .axi_req_t ( iopmp_axi_req_t  ),
         // AXI response struct type
-        .axi_rsp_t ( axi_conf::resp_t ),
+        .axi_rsp_t ( iopmp_axi_resp_t ),
         // regbus request struct type
         .reg_req_t ( iopmp_reg_req_t  ),
         // regbus response struct type
@@ -467,26 +469,31 @@ module dut #(
      * Device under test, AXI IO-PMP
      */ 
     axi_io_pmp #(
-        .DATA_WIDTH   ( DATA_WIDTH       ),
-        .ADDR_WIDTH   ( ADDR_WIDTH       ),
-        .STRB_WIDTH   ( STRB_WIDTH       ),
-        .ID_WIDTH     ( ID_WIDTH         ),
-        .AWUSER_ENABLE( AWUSER_ENABLE    ),
-        .AWUSER_WIDTH ( AWUSER_WIDTH     ),
-        .WUSER_ENABLE ( WUSER_ENABLE     ),
-        .WUSER_WIDTH  ( WUSER_WIDTH      ),
-        .BUSER_ENABLE ( BUSER_ENABLE     ),
-        .BUSER_WIDTH  ( BUSER_WIDTH      ),
-        .ARUSER_ENABLE( ARUSER_ENABLE    ),
-        .ARUSER_WIDTH ( ARUSER_WIDTH     ),
-        .RUSER_ENABLE ( RUSER_ENABLE     ),
-        .RUSER_WIDTH  ( RUSER_WIDTH      ),
-        .REG_TYPE     ( REG_TYPE         ),
-        .WAVES        ( WAVES            ),
-        .axi_req_t    ( axi_conf::req_t  ),
-        .axi_rsp_t    ( axi_conf::resp_t ),
-        .reg_req_t    ( iopmp_reg_req_t  ),
-        .reg_rsp_t    ( iopmp_reg_rsp_t  )
+        .DATA_WIDTH   ( DATA_WIDTH          ),
+        .ADDR_WIDTH   ( ADDR_WIDTH          ),
+        .STRB_WIDTH   ( STRB_WIDTH          ),
+        .ID_WIDTH     ( ID_WIDTH            ),
+        .AWUSER_ENABLE( AWUSER_ENABLE       ),
+        .AWUSER_WIDTH ( AWUSER_WIDTH        ),
+        .WUSER_ENABLE ( WUSER_ENABLE        ),
+        .WUSER_WIDTH  ( WUSER_WIDTH         ),
+        .BUSER_ENABLE ( BUSER_ENABLE        ),
+        .BUSER_WIDTH  ( BUSER_WIDTH         ),
+        .ARUSER_ENABLE( ARUSER_ENABLE       ),
+        .ARUSER_WIDTH ( ARUSER_WIDTH        ),
+        .RUSER_ENABLE ( RUSER_ENABLE        ),
+        .RUSER_WIDTH  ( RUSER_WIDTH         ),
+        .REG_TYPE     ( REG_TYPE            ),
+        .WAVES        ( WAVES               ),
+        .axi_aw_chan_t( iopmp_axi_aw_chan_t ),
+        .axi_w_chan_t ( iopmp_axi_w_chan_t  ),
+        .axi_b_chan_t ( iopmp_axi_b_chan_t  ),
+        .axi_ar_chan_t( iopmp_axi_ar_chan_t ),
+        .axi_r_chan_t ( iopmp_axi_r_chan_t  ),
+        .axi_req_t    ( iopmp_axi_req_t     ),
+        .axi_rsp_t    ( iopmp_axi_resp_t    ),
+        .reg_req_t    ( iopmp_reg_req_t     ),
+        .reg_rsp_t    ( iopmp_reg_rsp_t     )
     ) axi_io_pmp0 (
         .clk_i     ( clk           ),
         .rst_ni    ( !rst          ),
@@ -497,7 +504,6 @@ module dut #(
         .cfg_req_i ( cfg_reg_req_o ),
         .cfg_resp_o( cfg_reg_rsp_i )
     );
-
 
     /*
      * Simulation / Debugging
