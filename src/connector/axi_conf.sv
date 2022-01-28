@@ -14,11 +14,12 @@
 
 package axi_conf;
 
-    typedef enum { RESP_OKAY   = 2'b00, // normal access success
-                   RESP_EXOKAY = 2'b01, // exclusive access okay
-                   RESP_SLVERR = 2'b10, // slave error
-                   RESP_DECERR = 2'b11  // decode error
-                   } axi_trans_resp_t;
+    typedef enum logic [1:0] {
+        RESP_OKAY   = 2'b00, // normal access success
+        RESP_EXOKAY = 2'b01, // exclusive access okay
+        RESP_SLVERR = 2'b10, // slave error
+        RESP_DECERR = 2'b11  // decode error
+        } axi_trans_resp_t;
 
     // set these values using i.e. +define+VAR=VAL in questasim
     localparam UserWidth    = `USER_WIDTH;
