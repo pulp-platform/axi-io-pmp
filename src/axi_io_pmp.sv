@@ -15,43 +15,54 @@
 
 module axi_io_pmp #(
     // Width of data bus in bits
-    parameter DATA_WIDTH     = 64,
+    parameter DATA_WIDTH         = 64,
     // Width of address bus in bits
-    parameter ADDR_WIDTH     = 64,
+    parameter ADDR_WIDTH         = 64,
     // Width of strobe (width of data bus in words)
-    parameter STRB_WIDTH     = (DATA_WIDTH / 8),
+    parameter STRB_WIDTH         = (DATA_WIDTH / 8),
     // Width of id signal
-    parameter ID_WIDTH       = 8,
+    parameter ID_WIDTH           = 8,
     // Propagate awuser signal
-    parameter AWUSER_ENABLE  = 0,
+    parameter AWUSER_ENABLE      = 0,
     // Width of awuser signal
-    parameter AWUSER_WIDTH   = 1,
+    parameter AWUSER_WIDTH       = 1,
     // Propagate wuser signal
-    parameter WUSER_ENABLE   = 0,
+    parameter WUSER_ENABLE       = 0,
     // Width of wuser signal
-    parameter WUSER_WIDTH    = 1,
+    parameter WUSER_WIDTH        = 1,
     // Propagate buser signal
-    parameter BUSER_ENABLE   = 0,
+    parameter BUSER_ENABLE       = 0,
     // Width of buser signal
-    parameter BUSER_WIDTH    = 1,
+    parameter BUSER_WIDTH        = 1,
     // Propagate aruser signal
-    parameter ARUSER_ENABLE  = 0,
+    parameter ARUSER_ENABLE      = 0,
     // Width of aruser signal
-    parameter ARUSER_WIDTH   = 1,
+    parameter ARUSER_WIDTH       = 1,
     // Propagate ruser signal
-    parameter RUSER_ENABLE   = 0,
+    parameter RUSER_ENABLE       = 0,
     // Width of ruser signal
-    parameter RUSER_WIDTH    = 1,
+    parameter RUSER_WIDTH        = 1,
     // register type { Bypass = 0, Registered = 1, Skid Buffer = 2}
-    parameter REG_TYPE       = 1,
-    // Waveform generation { Off=0, On=1 }
-    parameter WAVES          = 0,
-    // register interface types
-    parameter type axi_req_t = logic,
-    parameter type axi_rsp_t = logic,
-    // register interface types
-    parameter type reg_req_t = logic,
-    parameter type reg_rsp_t = logic
+    parameter REG_TYPE           = 1,
+    // waveform generation { Off=0, On=1 }
+    parameter WAVES              = 0,
+    // AXI channel structs
+    parameter type axi_aw_chan_t = logic,
+    parameter type  axi_w_chan_t = logic,
+    parameter type  axi_b_chan_t = logic,
+    parameter type axi_ar_chan_t = logic,
+    parameter type  axi_r_chan_t = logic,
+    // AXI request/response
+    parameter type axi_req_t     = logic,
+    parameter type axi_rsp_t     = logic,
+    // register interface request/response
+    parameter type reg_req_t     = logic,
+    parameter type reg_rsp_t     = logic,
+    // PMP parameters
+    parameter PLEN               = 56, // rv64: 56, rv32: 34
+    parameter PMP_LEN            = 54, // rv64: 54, rv32: 32
+    parameter NR_ENTRIES         = 16,
+    parameter MAX_ENTRIES        = 16
 ) (
     input            clk_i,
     input            rst_ni,
@@ -85,11 +96,6 @@ module axi_io_pmp #(
         .reg2hw   ( io_pmp_reg2hw ) // from registers to hardware
     ); 
 
-
-    localparam PLEN        = 56; // rv64: 56, rv32: 34
-    localparam PMP_LEN     = 54; // rv64: 54, rv32: 32
-    localparam NR_ENTRIES  = 16;
-    localparam MAX_ENTRIES = 16;
 
     logic [MAX_ENTRIES-1:0][PMP_LEN-1:0] cfg_addr_reg;
     logic [$bits(riscv::pmpcfg_t)-1:0] [MAX_ENTRIES-1:0] cfg_reg;
@@ -148,7 +154,7 @@ module axi_io_pmp #(
      * Write channels
      */
     spill_register #(
-    .T       ( axi_conf::aw_chan_t ),
+    .T       ( axi_aw_chan_t       ),
     .Bypass  ( Bypass              )
     ) i_reg_aw (
     .clk_i   ( clk_i               ),
@@ -162,7 +168,7 @@ module axi_io_pmp #(
     );
 
     spill_register #(
-    .T       ( axi_conf::w_chan_t ),
+    .T       ( axi_w_chan_t       ),
     .Bypass  ( Bypass             )
     ) i_reg_w  (
     .clk_i   ( clk_i              ),
@@ -176,7 +182,7 @@ module axi_io_pmp #(
     );
 
     spill_register #(
-    .T       ( axi_conf::b_chan_t ),
+    .T       ( axi_b_chan_t       ),
     .Bypass  ( Bypass             )
     ) i_reg_b  (
     .clk_i   ( clk_i              ),
@@ -193,7 +199,7 @@ module axi_io_pmp #(
      * Read channels
      */
     spill_register #(
-    .T       ( axi_conf::ar_chan_t ),
+    .T       ( axi_ar_chan_t       ),
     .Bypass  ( Bypass              )
     ) i_reg_ar (
     .clk_i   ( clk_i               ),
@@ -207,7 +213,7 @@ module axi_io_pmp #(
     );
 
 
-    axi_conf::r_chan_t r_chan;
+    axi_r_chan_t r_chan;
     assign r_chan.id = mst_resp_i.r.id;
     assign r_chan.data = pmp_allow ? mst_resp_i.r.data : '1; // TODO: this should not even be necessary (we should block the transaction earlier)
     assign r_chan.resp = pmp_allow ? axi_conf::RESP_OKAY : axi_conf::RESP_SLVERR;
@@ -215,7 +221,7 @@ module axi_io_pmp #(
     assign r_chan.user = mst_resp_i.r.user;
 
     spill_register #(
-    .T       ( axi_conf::r_chan_t ),
+    .T       ( axi_r_chan_t       ),
     .Bypass  ( Bypass             )
     ) i_reg_r  (
     .clk_i   ( clk_i              ),
