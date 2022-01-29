@@ -19,10 +19,6 @@ from bitarray.util import int2ba, ba2int
 class TB:
 
     def __init__(self, dut):
-        # activate for remote debugging
-        if "REMOTE" in os.environ:
-            import pydevd_pycharm
-            pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
 
         self.dut = dut
 
@@ -154,6 +150,12 @@ if cocotb.SIM_NAME:
 @pytest.mark.parametrize("addr_width", [64])  # [32, 64]
 @pytest.mark.parametrize("simulator", ["questa"])  # ["verilator", "questa"]
 def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
+
+    # activate for remote debugging
+    if "REMOTE" in os.environ:
+        import pydevd_pycharm
+        pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
+
     # extract & setup relevant information
     dut = "dut"
     module = os.path.splitext(os.path.basename(__file__))[0]
@@ -250,22 +252,29 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
             module=module
         )
         # suppress some verilator specific warnings (i.e. missing timescale information, ..)
-        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD", "-Wno-CASEINCOMPLETE", "-Wno-WIDTH", "-Wno-SELRANGE"]
+        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD", "-Wno-CASEINCOMPLETE", "-Wno-WIDTH", "-Wno-SELRANGE", "-Wno-CMPCONST", "-Wno-UNSIGNED"]
 
     elif simulator == "questa":
         sim = cocotb_test.simulator.Questa(
             toplevel=toplevel,
             module=module
         )
-        sim.compile_args += [
-            f"+define+DATA_WIDTH={parameters['DATA_WIDTH']}",
-            f"+define+ADDR_WIDTH={parameters['ADDR_WIDTH']}",
-            f"+define+STRB_WIDTH={parameters['STRB_WIDTH']}",
-            f"+define+ID_WIDTH={parameters['ID_WIDTH']}"
-            f"+define+USER_WIDTH={parameters['AWUSER_WIDTH']}"]
+        # sim.compile_args += [
+        #     f"+define+DATA_WIDTH={parameters['DATA_WIDTH']}",
+        #     f"+define+ADDR_WIDTH={parameters['ADDR_WIDTH']}",
+        #     f"+define+STRB_WIDTH={parameters['STRB_WIDTH']}",
+        #     f"+define+ID_WIDTH={parameters['ID_WIDTH']}"
+        #     f"+define+USER_WIDTH={parameters['AWUSER_WIDTH']}"]
 
         sim.compile_args += ["+define+TARGET_VSIM"]
         # sim.gui = True
+        # VSIM_ARGS += -coverage -coveranalysis -cvgperinstance
+        # VSIM_ARGS += -do \"coverage save -codeAll -cvg -onexit $(DUT).ucdb;\"
+        # VLOG_ARGS += -cover bcs
+        #sim.compile_args += ["-cover bcs"]
+        #sim.simulation_args += ["-coverage -coveranalysis -cvgperinstance"]#                                '-do coverage save -codeAll -cvg -onexit axi_io_pmp.ucdb;']
+        #sim.plus_args += ["-do \'coverage save -codeAll -cvg -onexit axi_io_pmp.ucdb;\'"]
+
     else:
         sim = cocotb_test.simulator.Simulator(
             toplevel=toplevel,
