@@ -30,7 +30,7 @@ questa_coverage_report:
 	vcover report -details -html sim_build/axi_io_pmp.ucdb
 
 bender_install:
-	curl --proto '=https' --tlsv1.2 https://pulp-platform.github.io/bender/init -sSf | sh
+	curl --proto '=https' --tlsv1.2 https://pulp-platform.github.io/bender/init -sSf | /bin/bash
 
 bender_gen_src:
 	./bender script flist --relative-path --exclude axi --exclude common_cells --exclude register_interface > src.list
