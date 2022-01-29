@@ -15,7 +15,7 @@ SHELL := /bin/bash
 
 .PHONY: clean
 
-all: bender_install bender_gen_src sim wave
+all: bender_install bender_dl bender_gen_src setup_env sim wave questa_coverage_report
 
 setup_env:
 	source ./setup_env.sh
@@ -29,8 +29,13 @@ wave:
 questa_coverage_report:
 	vcover report -details -html sim_build/axi_io_pmp.ucdb
 
+bender: bender_install bender_dl bender_gen_src
+
+bender_dl:
+	./bender
+
 bender_install:
-	curl --proto '=https' --tlsv1.2 https://pulp-platform.github.io/bender/init -sSf | /bin/bash
+	curl --proto '=https' https://pulp-platform.github.io/bender/init -sSf | /bin/bash
 
 bender_gen_src:
 	./bender script flist --relative-path --exclude axi --exclude common_cells --exclude register_interface > src.list
