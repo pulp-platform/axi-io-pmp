@@ -469,22 +469,6 @@ module dut #(
      * Device under test, AXI IO-PMP
      */ 
     axi_io_pmp #(
-        .DATA_WIDTH   ( DATA_WIDTH          ),
-        .ADDR_WIDTH   ( ADDR_WIDTH          ),
-        .STRB_WIDTH   ( STRB_WIDTH          ),
-        .ID_WIDTH     ( ID_WIDTH            ),
-        .AWUSER_ENABLE( AWUSER_ENABLE       ),
-        .AWUSER_WIDTH ( AWUSER_WIDTH        ),
-        .WUSER_ENABLE ( WUSER_ENABLE        ),
-        .WUSER_WIDTH  ( WUSER_WIDTH         ),
-        .BUSER_ENABLE ( BUSER_ENABLE        ),
-        .BUSER_WIDTH  ( BUSER_WIDTH         ),
-        .ARUSER_ENABLE( ARUSER_ENABLE       ),
-        .ARUSER_WIDTH ( ARUSER_WIDTH        ),
-        .RUSER_ENABLE ( RUSER_ENABLE        ),
-        .RUSER_WIDTH  ( RUSER_WIDTH         ),
-        .REG_TYPE     ( REG_TYPE            ),
-        .WAVES        ( WAVES               ),
         .axi_aw_chan_t( iopmp_axi_aw_chan_t ),
         .axi_w_chan_t ( iopmp_axi_w_chan_t  ),
         .axi_b_chan_t ( iopmp_axi_b_chan_t  ),
@@ -511,7 +495,7 @@ module dut #(
    `ifdef COCOTB_SIM
     initial begin
         if(WAVES == 1) begin
-            // Generate trace file
+            // generate trace file
             $dumpfile("axi_io_pmp.vcd");
             $dumpvars(0, dut);
         end

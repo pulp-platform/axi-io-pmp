@@ -14,55 +14,25 @@
 `timescale 1ns / 1ps
 
 module axi_io_pmp #(
-    // Width of data bus in bits
-    parameter DATA_WIDTH         = 64,
-    // Width of address bus in bits
-    parameter ADDR_WIDTH         = 64,
-    // Width of strobe (width of data bus in words)
-    parameter STRB_WIDTH         = (DATA_WIDTH / 8),
-    // Width of id signal
-    parameter ID_WIDTH           = 8,
-    // Propagate awuser signal
-    parameter AWUSER_ENABLE      = 0,
-    // Width of awuser signal
-    parameter AWUSER_WIDTH       = 1,
-    // Propagate wuser signal
-    parameter WUSER_ENABLE       = 0,
-    // Width of wuser signal
-    parameter WUSER_WIDTH        = 1,
-    // Propagate buser signal
-    parameter BUSER_ENABLE       = 0,
-    // Width of buser signal
-    parameter BUSER_WIDTH        = 1,
-    // Propagate aruser signal
-    parameter ARUSER_ENABLE      = 0,
-    // Width of aruser signal
-    parameter ARUSER_WIDTH       = 1,
-    // Propagate ruser signal
-    parameter RUSER_ENABLE       = 0,
-    // Width of ruser signal
-    parameter RUSER_WIDTH        = 1,
-    // register type { Bypass = 0, Registered = 1, Skid Buffer = 2}
-    parameter REG_TYPE           = 1,
-    // waveform generation { Off=0, On=1 }
-    parameter WAVES              = 0,
+    // register parameters (bypass { read, write } x { pre pmp, post pmp })
+    // TODO
     // AXI channel structs
-    parameter type axi_aw_chan_t = logic,
-    parameter type  axi_w_chan_t = logic,
-    parameter type  axi_b_chan_t = logic,
-    parameter type axi_ar_chan_t = logic,
-    parameter type  axi_r_chan_t = logic,
+    parameter type axi_aw_chan_t       = logic,
+    parameter type  axi_w_chan_t       = logic,
+    parameter type  axi_b_chan_t       = logic,
+    parameter type axi_ar_chan_t       = logic,
+    parameter type  axi_r_chan_t       = logic,
     // AXI request/response
-    parameter type axi_req_t     = logic,
-    parameter type axi_rsp_t     = logic,
+    parameter type axi_req_t           = logic,
+    parameter type axi_rsp_t           = logic,
     // register interface request/response
-    parameter type reg_req_t     = logic,
-    parameter type reg_rsp_t     = logic,
+    parameter type reg_req_t           = logic,
+    parameter type reg_rsp_t           = logic,
     // PMP parameters
-    parameter PLEN               = 56, // rv64: 56, rv32: 34
-    parameter PMP_LEN            = 54, // rv64: 54, rv32: 32
-    parameter NR_ENTRIES         = 16,
-    parameter MAX_ENTRIES        = 16
+    parameter int unsigned PLEN        = 56, // rv64: 56, rv32: 34
+    parameter int unsigned PMP_LEN     = 54, // rv64: 54, rv32: 32
+    parameter int unsigned NR_ENTRIES  = 16,
+    parameter int unsigned MAX_ENTRIES = 16
 ) (
     input            clk_i,
     input            rst_ni,
@@ -82,9 +52,9 @@ module axi_io_pmp #(
      */
     io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
     io_pmp_reg_top #(
-        .AW       ( ADDR_WIDTH    ),
-        .reg_req_t( reg_req_t     ),
-        .reg_rsp_t( reg_rsp_t     )
+        .AW       ( $bits(cfg_req_i.addr) ),
+        .reg_req_t( reg_req_t             ),
+        .reg_rsp_t( reg_rsp_t             )
     ) io_pmp_reg_top0 (
         .clk_i    ( clk_i         ),
         .rst_ni   ( rst_ni        ),
@@ -95,20 +65,6 @@ module axi_io_pmp #(
         // to HW
         .reg2hw   ( io_pmp_reg2hw ) // from registers to hardware
     ); 
-
-
-    logic [MAX_ENTRIES-1:0][PMP_LEN-1:0] cfg_addr_reg;
-    logic [$bits(riscv::pmpcfg_t)-1:0] [MAX_ENTRIES-1:0] cfg_reg;
-
-    wire pmp_allow;
-
-    initial begin
-        // reset all entries
-        for (int i = 0; i < MAX_ENTRIES; i = i + 1) begin
-            cfg_addr_reg[i] = { PMP_LEN{1'b0} };
-            cfg_reg[i]      = { $bits(riscv::pmpcfg_t){1'b0} };
-        end
-    end
 
     /*
      * Read check PMP
@@ -216,7 +172,8 @@ module axi_io_pmp #(
     axi_r_chan_t r_chan;
     assign r_chan.id = mst_resp_i.r.id;
     assign r_chan.data = pmp_allow ? mst_resp_i.r.data : '1; // TODO: this should not even be necessary (we should block the transaction earlier)
-    assign r_chan.resp = pmp_allow ? axi_conf::RESP_OKAY : axi_conf::RESP_SLVERR;
+
+    assign r_chan.resp = pmp_allow ? axi_pkg::RESP_OKAY : axi_pkg::RESP_SLVERR;
     assign r_chan.last = mst_resp_i.r.last;
     assign r_chan.user = mst_resp_i.r.user;
 
