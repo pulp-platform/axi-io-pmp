@@ -202,7 +202,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         "register_interface/vendor/lowrisc_opentitan/src/prim_subreg_shadow.sv",
 
         # axi connector
-        "connector/axi_conf.sv",
         "connector/axi_master_connector.sv",
         "connector/axi_slave_connector.sv",
 
