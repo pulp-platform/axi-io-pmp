@@ -15,13 +15,13 @@ SHELL := /bin/bash
 
 .PHONY: clean
 
-all: bender_install bender_dl bender_gen_src setup_env sim wave questa_coverage_report
-
-setup_env:
-	source ./setup_env.sh
+all: bender_install bender_dl bender_gen_src sim wave questa_coverage_report
 
 sim:
-	pytest tb/
+	pytest tb/ 
+
+sim_mt:
+	pytest tb/ -n $(shell nproc)
 
 wave:
 	gtkwave sim_build/axi_io_pmp.vcd
@@ -35,7 +35,7 @@ bender_dl:
 	./bender
 
 bender_install:
-	curl --proto '=https' https://pulp-platform.github.io/bender/init -sSf | /bin/bash
+	curl --proto '=https' https://pulp-platform.github.io/bender/init -sSf | /bin/sh
 
 bender_gen_src:
 	./bender script flist --relative-path --exclude axi --exclude common_cells --exclude register_interface > src.list
@@ -43,3 +43,4 @@ bender_gen_src:
 clean:
 	rm -rf bender Bender.lock
 	rm -rf sim_build .pytest_cache transcript
+	rm -rf covhtmlreport
