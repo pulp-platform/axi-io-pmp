@@ -258,21 +258,14 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
             toplevel=toplevel,
             module=module
         )
-        # sim.compile_args += [
-        #     f"+define+DATA_WIDTH={parameters['DATA_WIDTH']}",
-        #     f"+define+ADDR_WIDTH={parameters['ADDR_WIDTH']}",
-        #     f"+define+STRB_WIDTH={parameters['STRB_WIDTH']}",
-        #     f"+define+ID_WIDTH={parameters['ID_WIDTH']}"
-        #     f"+define+USER_WIDTH={parameters['AWUSER_WIDTH']}"]
 
-        sim.compile_args += ["+define+TARGET_VSIM"]
+        sim.compile_args += ["+define+TARGET_VSIM"] # activate axi_demux workaround
+
         # sim.gui = True
-        # VSIM_ARGS += -coverage -coveranalysis -cvgperinstance
-        # VSIM_ARGS += -do \"coverage save -codeAll -cvg -onexit $(DUT).ucdb;\"
-        # VLOG_ARGS += -cover bcs
-        #sim.compile_args += ["-cover bcs"]
-        #sim.simulation_args += ["-coverage -coveranalysis -cvgperinstance"]#                                '-do coverage save -codeAll -cvg -onexit axi_io_pmp.ucdb;']
-        #sim.plus_args += ["-do \'coverage save -codeAll -cvg -onexit axi_io_pmp.ucdb;\'"]
+
+        # add coverage to questa
+        sim.compile_args += ["+cover bcs"]
+        sim.simulation_args += [f"-coverage -coveranalysis -cvgperinstance", '-do "coverage save -codeAll -cvg -onexit axi_io_pmp.ucdb;"']
 
     else:
         sim = cocotb_test.simulator.Simulator(

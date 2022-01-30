@@ -1,9 +1,11 @@
 cocotb==1.6.1
-cocotb_test==0.2.1
+git+https://github.com/andreaskuster/cocotb-test@master # fixes coverage support, PR pending (cocotb_test)
 cocotbext-axi==0.1.18
 gprof2dot==2021.2.21
 bitarray==2.3.5
 mako==1.1.6
 hjson==3.0.2
 pyyaml==6.0.0
+pytest==6.2.5
+pytest-xdist==2.5.0
 pydevd-pycharm==213.6461.77
