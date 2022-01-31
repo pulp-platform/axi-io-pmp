@@ -225,8 +225,8 @@ module dut #(
     `AXI_TYPEDEF_R_CHAN_T(iopmp_axi_r_chan_t, logic[DATA_WIDTH-1:0], logic[ID_WIDTH-1:0], logic[AWUSER_WIDTH-1:0])
     `AXI_TYPEDEF_REQ_T(iopmp_axi_req_t, iopmp_axi_aw_chan_t, iopmp_axi_w_chan_t, iopmp_axi_ar_chan_t)
     `AXI_TYPEDEF_RESP_T(iopmp_axi_resp_t, iopmp_axi_b_chan_t, iopmp_axi_r_chan_t)
-    iopmp_axi_req_t  m_axi_req_i,  s_axi_req_o,  cfg_axi_req_o;
-    iopmp_axi_resp_t m_axi_resp_o, s_axi_resp_i, cfg_axi_resp_i;
+    iopmp_axi_req_t  m_axi_req_i,  mq_axi_req_i,  s_axi_req_o,  sq_axi_req_o,  cfg_axi_req_o;
+    iopmp_axi_resp_t m_axi_resp_o, mq_axi_resp_o, s_axi_resp_i, sq_axi_resp_i, cfg_axi_resp_i;
 
     /*
      * Traditional AXI slave signal to (req/resp) pair conversion
@@ -431,8 +431,8 @@ module dut #(
         /*
          * AXI request/response pair
          */
-        .axi_req_i     ( m_axi_req_i    ),
-        .axi_resp_o    ( m_axi_resp_o   )
+        .axi_req_i     ( mq_axi_req_i   ),
+        .axi_resp_o    ( mq_axi_resp_o  )
     );
 
     /*
@@ -465,6 +465,30 @@ module dut #(
         .reg_rsp_i ( cfg_reg_rsp_i  )
     );
 
+
+    axi_cut #(
+        // bypass enable
+        .Bypass   ( 1'b0                ),
+        // AXI channel structs
+        .aw_chan_t( iopmp_axi_aw_chan_t ),
+        .w_chan_t ( iopmp_axi_w_chan_t  ),
+        .b_chan_t ( iopmp_axi_b_chan_t  ),
+        .ar_chan_t( iopmp_axi_ar_chan_t ),
+        .r_chan_t ( iopmp_axi_r_chan_t  ),
+        // AXI request & response structs
+        .req_t    ( iopmp_axi_req_t     ),
+        .resp_t   ( iopmp_axi_resp_t    )
+    ) axi_cut0 (
+        .clk_i     ( clk           ),
+        .rst_ni    ( !rst          ),
+        // slave port
+        .slv_req_i ( s_axi_req_o   ),
+        .slv_resp_o( s_axi_resp_i  ),
+        // master port
+        .mst_req_o ( sq_axi_req_o  ),
+        .mst_resp_i( sq_axi_resp_i )
+    );
+
     /*
      * Device under test, AXI IO-PMP
      */ 
@@ -481,12 +505,36 @@ module dut #(
     ) axi_io_pmp0 (
         .clk_i     ( clk           ),
         .rst_ni    ( !rst          ),
-        .slv_req_i ( s_axi_req_o   ),
-        .slv_resp_o( s_axi_resp_i  ), 
+        .slv_req_i ( sq_axi_req_o   ),
+        .slv_resp_o( sq_axi_resp_i  ), 
         .mst_req_o ( m_axi_req_i   ),
         .mst_resp_i( m_axi_resp_o  ),
         .cfg_req_i ( cfg_reg_req_o ),
         .cfg_resp_o( cfg_reg_rsp_i )
+    );
+
+
+    axi_cut #(
+        // bypass enable
+        .Bypass   ( 1'b0                ),
+        // AXI channel structs
+        .aw_chan_t( iopmp_axi_aw_chan_t ),
+        .w_chan_t ( iopmp_axi_w_chan_t  ),
+        .b_chan_t ( iopmp_axi_b_chan_t  ),
+        .ar_chan_t( iopmp_axi_ar_chan_t ),
+        .r_chan_t ( iopmp_axi_r_chan_t  ),
+        // AXI request & response structs
+        .req_t    ( iopmp_axi_req_t     ),
+        .resp_t   ( iopmp_axi_resp_t    )
+    ) axi_cut1 (
+        .clk_i     ( clk           ),
+        .rst_ni    ( !rst          ),
+        // slave port
+        .slv_req_i ( m_axi_req_i   ),
+        .slv_resp_o( m_axi_resp_o  ),
+        // master port
+        .mst_req_o ( mq_axi_req_i  ),
+        .mst_resp_i( mq_axi_resp_o )
     );
 
     /*

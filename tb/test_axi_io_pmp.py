@@ -190,6 +190,7 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         "axi/src/axi_atop_filter.sv",
         "axi/src/axi_burst_splitter.sv",
         "axi/src/axi_to_axi_lite.sv",
+        "axi/src/axi_cut.sv",
 
         # pulp-platform register interface
         "register/io_pmp_reg_pkg.sv",
