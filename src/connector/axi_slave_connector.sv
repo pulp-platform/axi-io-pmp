@@ -39,67 +39,67 @@ module axi_slave_connector #(
     /*
      * Write address channel
      */
-    input  [ID_WIDTH-1:0]      s_axi_awid,
-    input  [ADDR_WIDTH-1:0]    s_axi_awaddr,
-    input  [7:0]               s_axi_awlen,
-    input  [2:0]               s_axi_awsize,
-    input  [1:0]               s_axi_awburst,
-    input                      s_axi_awlock,
-    input  [3:0]               s_axi_awcache,
-    input  [2:0]               s_axi_awprot,
-    input  [3:0]               s_axi_awqos,
-    input  [3:0]               s_axi_awregion,
-    input  [AWUSER_WIDTH-1:0]  s_axi_awuser,
-    input                      s_axi_awvalid,
-    output                     s_axi_awready,
+    input  logic [ID_WIDTH-1:0]     s_axi_awid,
+    input  logic [ADDR_WIDTH-1:0]   s_axi_awaddr,
+    input  logic [7:0]              s_axi_awlen,
+    input  logic [2:0]              s_axi_awsize,
+    input  logic [1:0]              s_axi_awburst,
+    input  logic                    s_axi_awlock,
+    input  logic [3:0]              s_axi_awcache,
+    input  logic [2:0]              s_axi_awprot,
+    input  logic [3:0]              s_axi_awqos,
+    input  logic [3:0]              s_axi_awregion,
+    input  logic [AWUSER_WIDTH-1:0] s_axi_awuser,
+    input  logic                    s_axi_awvalid,
+    output logic                    s_axi_awready,
     /*
      * Write data channel
      */
-    input  [DATA_WIDTH-1:0]    s_axi_wdata,
-    input  [STRB_WIDTH-1:0]    s_axi_wstrb,
-    input                      s_axi_wlast,
-    input  [WUSER_WIDTH-1:0]   s_axi_wuser,
-    input                      s_axi_wvalid,
-    output                     s_axi_wready,
+    input  logic [DATA_WIDTH-1:0]   s_axi_wdata,
+    input  logic [STRB_WIDTH-1:0]   s_axi_wstrb,
+    input  logic                    s_axi_wlast,
+    input  logic [WUSER_WIDTH-1:0]  s_axi_wuser,
+    input  logic                    s_axi_wvalid,
+    output logic                    s_axi_wready,
     /*
      * Write response channel
      */
-    output [ID_WIDTH-1:0]      s_axi_bid,
-    output [1:0]               s_axi_bresp,
-    output [BUSER_WIDTH-1:0]   s_axi_buser,
-    output                     s_axi_bvalid,
-    input                      s_axi_bready,
+    output logic [ID_WIDTH-1:0]     s_axi_bid,
+    output logic [1:0]              s_axi_bresp,
+    output logic [BUSER_WIDTH-1:0]  s_axi_buser,
+    output logic                    s_axi_bvalid,
+    input  logic                    s_axi_bready,
     /*
      * Read address channel
      */
-    input  [ID_WIDTH-1:0]      s_axi_arid,
-    input  [ADDR_WIDTH-1:0]    s_axi_araddr,
-    input  [7:0]               s_axi_arlen,
-    input  [2:0]               s_axi_arsize,
-    input  [1:0]               s_axi_arburst,
-    input                      s_axi_arlock,
-    input  [3:0]               s_axi_arcache,
-    input  [2:0]               s_axi_arprot,
-    input  [3:0]               s_axi_arqos,
-    input  [3:0]               s_axi_arregion,
-    input  [ARUSER_WIDTH-1:0]  s_axi_aruser,
-    input                      s_axi_arvalid,
-    output                     s_axi_arready,
+    input  logic [ID_WIDTH-1:0]     s_axi_arid,
+    input  logic [ADDR_WIDTH-1:0]   s_axi_araddr,
+    input  logic [7:0]              s_axi_arlen,
+    input  logic [2:0]              s_axi_arsize,
+    input  logic [1:0]              s_axi_arburst,
+    input  logic                    s_axi_arlock,
+    input  logic [3:0]              s_axi_arcache,
+    input  logic [2:0]              s_axi_arprot,
+    input  logic [3:0]              s_axi_arqos,
+    input  logic [3:0]              s_axi_arregion,
+    input  logic [ARUSER_WIDTH-1:0] s_axi_aruser,
+    input  logic                    s_axi_arvalid,
+    output logic                    s_axi_arready,
     /*
      * Read data channel
      */
-    output [ID_WIDTH-1:0]      s_axi_rid,
-    output [DATA_WIDTH-1:0]    s_axi_rdata,
-    output [1:0]               s_axi_rresp,
-    output                     s_axi_rlast,
-    output [RUSER_WIDTH-1:0]   s_axi_ruser,
-    output                     s_axi_rvalid,
-    input                      s_axi_rready,
+    output logic [ID_WIDTH-1:0]     s_axi_rid,
+    output logic [DATA_WIDTH-1:0]   s_axi_rdata,
+    output logic [1:0]              s_axi_rresp,
+    output logic                    s_axi_rlast,
+    output logic [RUSER_WIDTH-1:0]  s_axi_ruser,
+    output logic                    s_axi_rvalid,
+    input  logic                    s_axi_rready,
     /*
      * AXI request/response pair
      */
-    output axi_req_t           axi_req_o,
-    input  axi_rsp_t           axi_resp_i
+    output axi_req_t                axi_req_o,
+    input  axi_rsp_t                axi_resp_i
 );
 
     /*

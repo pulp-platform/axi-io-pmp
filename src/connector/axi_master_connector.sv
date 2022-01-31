@@ -39,67 +39,67 @@ module axi_master_connector #(
     /*
      * Write address channel
      */
-    output [ID_WIDTH-1:0]      m_axi_awid,
-    output [ADDR_WIDTH-1:0]    m_axi_awaddr,
-    output [7:0]               m_axi_awlen,
-    output [2:0]               m_axi_awsize,
-    output [1:0]               m_axi_awburst,
-    output                     m_axi_awlock,
-    output [3:0]               m_axi_awcache,
-    output [2:0]               m_axi_awprot,
-    output [3:0]               m_axi_awqos,
-    output [3:0]               m_axi_awregion,
-    output [AWUSER_WIDTH-1:0]  m_axi_awuser,
-    output                     m_axi_awvalid,
-    input                      m_axi_awready,
+    output logic [ID_WIDTH-1:0]      m_axi_awid,
+    output logic [ADDR_WIDTH-1:0]    m_axi_awaddr,
+    output logic [7:0]               m_axi_awlen,
+    output logic [2:0]               m_axi_awsize,
+    output logic [1:0]               m_axi_awburst,
+    output logic                     m_axi_awlock,
+    output logic [3:0]               m_axi_awcache,
+    output logic [2:0]               m_axi_awprot,
+    output logic [3:0]               m_axi_awqos,
+    output logic [3:0]               m_axi_awregion,
+    output logic [AWUSER_WIDTH-1:0]  m_axi_awuser,
+    output logic                     m_axi_awvalid,
+    input  logic                     m_axi_awready,
     /*
      * Write data channel
      */
-    output [DATA_WIDTH-1:0]    m_axi_wdata,
-    output [STRB_WIDTH-1:0]    m_axi_wstrb,
-    output                     m_axi_wlast,
-    output [WUSER_WIDTH-1:0]   m_axi_wuser,
-    output                     m_axi_wvalid,
-    input                      m_axi_wready,
+    output logic [DATA_WIDTH-1:0]    m_axi_wdata,
+    output logic [STRB_WIDTH-1:0]    m_axi_wstrb,
+    output logic                     m_axi_wlast,
+    output logic [WUSER_WIDTH-1:0]   m_axi_wuser,
+    output logic                     m_axi_wvalid,
+    input  logic                     m_axi_wready,
     /*
      * Write response channel
      */
-    input  [ID_WIDTH-1:0]      m_axi_bid,
-    input  [1:0]               m_axi_bresp,
-    input  [BUSER_WIDTH-1:0]   m_axi_buser,
-    input                      m_axi_bvalid,
-    output                     m_axi_bready,
+    input  logic [ID_WIDTH-1:0]      m_axi_bid,
+    input  logic [1:0]               m_axi_bresp,
+    input  logic [BUSER_WIDTH-1:0]   m_axi_buser,
+    input  logic                     m_axi_bvalid,
+    output logic                     m_axi_bready,
     /*
      * Read address channel
      */
-    output [ID_WIDTH-1:0]      m_axi_arid,
-    output [ADDR_WIDTH-1:0]    m_axi_araddr,
-    output [7:0]               m_axi_arlen,
-    output [2:0]               m_axi_arsize,
-    output [1:0]               m_axi_arburst,
-    output                     m_axi_arlock,
-    output [3:0]               m_axi_arcache,
-    output [2:0]               m_axi_arprot,
-    output [3:0]               m_axi_arqos,
-    output [3:0]               m_axi_arregion,
-    output [ARUSER_WIDTH-1:0]  m_axi_aruser,
-    output                     m_axi_arvalid,
-    input                      m_axi_arready,
+    output logic [ID_WIDTH-1:0]      m_axi_arid,
+    output logic [ADDR_WIDTH-1:0]    m_axi_araddr,
+    output logic [7:0]               m_axi_arlen,
+    output logic [2:0]               m_axi_arsize,
+    output logic [1:0]               m_axi_arburst,
+    output logic                     m_axi_arlock,
+    output logic [3:0]               m_axi_arcache,
+    output logic [2:0]               m_axi_arprot,
+    output logic [3:0]               m_axi_arqos,
+    output logic [3:0]               m_axi_arregion,
+    output logic [ARUSER_WIDTH-1:0]  m_axi_aruser,
+    output logic                     m_axi_arvalid,
+    input  logic                     m_axi_arready,
     /*
      * Read data channel
      */
-    input  [ID_WIDTH-1:0]      m_axi_rid,
-    input  [DATA_WIDTH-1:0]    m_axi_rdata,
-    input  [1:0]               m_axi_rresp,
-    input                      m_axi_rlast,
-    input  [RUSER_WIDTH-1:0]   m_axi_ruser,
-    input                      m_axi_rvalid,
-    output                     m_axi_rready,
+    input  logic [ID_WIDTH-1:0]      m_axi_rid,
+    input  logic [DATA_WIDTH-1:0]    m_axi_rdata,
+    input  logic [1:0]               m_axi_rresp,
+    input  logic                     m_axi_rlast,
+    input  logic [RUSER_WIDTH-1:0]   m_axi_ruser,
+    input  logic                     m_axi_rvalid,
+    output logic                     m_axi_rready,
     /*
      * AXI request/response pair
      */
-    input  axi_req_t           axi_req_i,
-    output axi_rsp_t           axi_resp_o
+    input  axi_req_t                 axi_req_i,
+    output axi_rsp_t                 axi_resp_o
     );
 
     /*
