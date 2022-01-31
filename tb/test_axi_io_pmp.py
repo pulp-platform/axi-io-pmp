@@ -265,7 +265,8 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
 
         # add coverage to questa
         sim.compile_args += ["+cover bcs"]
-        sim.simulation_args += [f"-coverage -coveranalysis -cvgperinstance", '-do "coverage save -codeAll -cvg -onexit axi_io_pmp.ucdb;"']
+        coverage_file = "axi_io_pmp"
+        sim.simulation_args += ["-coverage -coveranalysis -cvgperinstance", f'-do "coverage save -codeAll -cvg -onexit {coverage_file}.ucdb;"']
 
     else:
         sim = cocotb_test.simulator.Simulator(
