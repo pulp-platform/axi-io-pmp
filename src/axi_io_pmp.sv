@@ -32,23 +32,25 @@ module axi_io_pmp #(
     parameter int unsigned PLEN        = 56, // rv64: 56, rv32: 34
     parameter int unsigned PMP_LEN     = 54, // rv64: 54, rv32: 32
     parameter int unsigned NR_ENTRIES  = 16,
-    parameter int unsigned MAX_ENTRIES = 16
+    parameter int unsigned MAX_ENTRIES = 16,
+    // AXI parameters
+    // maximum number of AXI bursts outstanding at the same time
+    parameter int unsigned MaxTxns  = 32'd1
 ) (
+    // rising-edge clock 
     input  logic     clk_i,
+    // asynchronous reset, active low
     input  logic     rst_ni,
     // slave port
     input  axi_req_t slv_req_i,
-    output axi_rsp_t slv_resp_o,
+    output axi_rsp_t slv_rsp_o,
     // master port
     output axi_req_t mst_req_o,
-    input  axi_rsp_t mst_resp_i,
+    input  axi_rsp_t mst_rsp_i,
     // configuration port
     input  reg_req_t cfg_req_i,
-    output reg_rsp_t cfg_resp_o
+    output reg_rsp_t cfg_rsp_o
 );
-
-    localparam Bypass = 1'b1;
-
 
     /*
      * Device configuration and status registers
@@ -64,136 +66,131 @@ module axi_io_pmp #(
         .devmode_i( 1'b0          ), // if 1, explicit error return for unmapped register access
         // register interface
         .reg_req_i( cfg_req_i     ),
-        .reg_rsp_o( cfg_resp_o    ),
+        .reg_rsp_o( cfg_rsp_o     ),
         // to HW
         .reg2hw   ( io_pmp_reg2hw ) // from registers to hardware
     ); 
 
+
+
     /*
-     * Read check PMP
+     * Read channel PMP
      */
-    wire pmp_allow_r;
+    logic [PLEN-1:0] pmp_addr_r;
+    logic pmp_allow_r;
+
+    // extract relevant address to check TODO: bursts are not fully checked yet!
+    always_comb begin
+        case (slv_req_i.ar.burst)
+            axi_pkg::BURST_FIXED, axi_pkg::BURST_INCR, axi_pkg::BURST_WRAP: begin
+                pmp_addr_r = slv_req_i.ar.addr[PLEN-1:0];
+            end
+        endcase
+    end
+
+    // address check
     pmp #(
         .PLEN      ( PLEN       ),
         .PMP_LEN   ( PMP_LEN    ),
         .NR_ENTRIES( NR_ENTRIES )
     ) pmp0 (
         // input
-        .addr_i       ( slv_req_i.ar.addr[PLEN-1:0] ), // [PLEN-1:0]
-        .access_type_i( riscv::ACCESS_READ          ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
-        .priv_lvl_i   ( riscv::PRIV_LVL_S           ), // riscv::priv_lvl_t, all accesses here are unprivileged
+        .addr_i       ( pmp_addr_r             ), // [PLEN-1:0], TODO: check if we slice the right bits
+        .access_type_i( riscv::ACCESS_READ     ), // handle read accesses
+        .priv_lvl_i   ( riscv::PRIV_LVL_S      ), // all accesses here are unprivileged
         // configuration
-        .conf_addr_i  ( io_pmp_reg2hw.pmp_addr      ), // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
-        .conf_i       ( io_pmp_reg2hw.pmp_cfg       ), // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
+        .conf_addr_i  ( io_pmp_reg2hw.pmp_addr ), // pmp address
+        .conf_i       ( io_pmp_reg2hw.pmp_cfg  ), // pmp conf
         // output
-        .allow_o      ( pmp_allow_r                 )
-    );
-
-
-    /*
-     * Read channels
-     */
-    spill_register #(
-    .T       ( axi_ar_chan_t       ),
-    .Bypass  ( Bypass              )
-    ) i_reg_ar (
-    .clk_i   ( clk_i               ),
-    .rst_ni  ( rst_ni              ),
-    .valid_i ( slv_req_i.ar_valid  ),
-    .ready_o ( slv_resp_o.ar_ready ),
-    .data_i  ( slv_req_i.ar        ),
-    .valid_o ( mst_req_o.ar_valid  ),
-    .ready_i ( mst_resp_i.ar_ready ),
-    .data_o  ( mst_req_o.ar        )
-    );
-
-
-    axi_r_chan_t r_chan;
-    assign r_chan.id = mst_resp_i.r.id;
-    assign r_chan.data = pmp_allow_r ? mst_resp_i.r.data : '1; // TODO: this should not even be necessary (we should block the transaction earlier)
-    assign r_chan.resp = pmp_allow_r ? axi_pkg::RESP_OKAY : axi_pkg::RESP_SLVERR;
-    assign r_chan.last = mst_resp_i.r.last;
-    assign r_chan.user = mst_resp_i.r.user;
-
-    spill_register #(
-    .T       ( axi_r_chan_t       ),
-    .Bypass  ( Bypass             )
-    ) i_reg_r  (
-    .clk_i   ( clk_i              ),
-    .rst_ni  ( rst_ni             ),
-    .valid_i ( mst_resp_i.r_valid ),
-    .ready_o ( mst_req_o.r_ready  ),
-    .data_i  ( r_chan             ), // mst_resp_i.r 
-    .valid_o ( slv_resp_o.r_valid ),
-    .ready_i ( slv_req_i.r_ready  ),
-    .data_o  ( slv_resp_o.r       )
+        .allow_o      ( pmp_allow_r            )
     );
 
     /*
-     * Write check PMP
+     * Write channel PMP
      */
-    wire pmp_allow_w;
+    logic [PLEN-1:0] pmp_addr_w;
+    logic pmp_allow_w;
+
+    // extract relevant address to check: TODO: bursts are not fully checked yet!
+    always_comb begin
+        case (slv_req_i.aw.burst)
+            axi_pkg::BURST_FIXED, axi_pkg::BURST_INCR, axi_pkg::BURST_WRAP: begin
+                pmp_addr_w = slv_req_i.aw.addr[PLEN-1:0];
+            end
+        endcase
+    end
+
+    // address check
     pmp #(
         .PLEN      ( PLEN       ),
         .PMP_LEN   ( PMP_LEN    ),
         .NR_ENTRIES( NR_ENTRIES )
     ) pmp1 (
         // input
-        .addr_i       ( slv_req_i.aw.addr[PLEN-1:0] ), // [PLEN-1:0]
-        .access_type_i( riscv::ACCESS_WRITE         ), // riscv::pmp_access_t, TODO: adjust to R/W transaction
-        .priv_lvl_i   ( riscv::PRIV_LVL_S           ), // riscv::priv_lvl_t, all accesses here are unprivileged
+        .addr_i       ( pmp_addr_w             ), // [PLEN-1:0], TODO: check if we slice the right bits
+        .access_type_i( riscv::ACCESS_WRITE    ), // handle write accesses
+        .priv_lvl_i   ( riscv::PRIV_LVL_S      ), // all accesses here are unprivileged
         // configuration
-        .conf_addr_i  ( io_pmp_reg2hw.pmp_addr      ), // [MAX_ENTRIES-1:0][PMP_LEN-1:0] 
-        .conf_i       ( io_pmp_reg2hw.pmp_cfg       ), // riscv::pmpcfg_t [MAX_ENTRIES-1:0]
+        .conf_addr_i  ( io_pmp_reg2hw.pmp_addr ), // pmp address
+        .conf_i       ( io_pmp_reg2hw.pmp_cfg  ), // pmp conf
         // output
-        .allow_o      ( pmp_allow_w                 )
+        .allow_o      ( pmp_allow_w            )
     );
 
 
     /*
-     * Write channels
+     * Demultiplex between authorized and unauthorized transactions
      */
-    spill_register #(
-    .T       ( axi_aw_chan_t       ),
-    .Bypass  ( Bypass              )
-    ) i_reg_aw (
-    .clk_i   ( clk_i               ),
-    .rst_ni  ( rst_ni              ),
-    .valid_i ( slv_req_i.aw_valid  ),
-    .ready_o ( slv_resp_o.aw_ready ),
-    .data_i  ( slv_req_i.aw        ),
-    .valid_o ( mst_req_o.aw_valid  ),
-    .ready_i ( mst_resp_i.aw_ready ),
-    .data_o  ( mst_req_o.aw        )
+    axi_req_t error_req;
+    axi_rsp_t error_rsp;
+    axi_demux #(
+        .AxiIdWidth ( $bits(error_req.aw.id) ),
+        .aw_chan_t  ( axi_aw_chan_t          ),
+        .w_chan_t   ( axi_w_chan_t           ),
+        .b_chan_t   ( axi_b_chan_t           ),
+        .ar_chan_t  ( axi_ar_chan_t          ),
+        .r_chan_t   ( axi_r_chan_t           ),
+        .req_t      ( axi_req_t              ),
+        .resp_t     ( axi_rsp_t              ),
+        .NoMstPorts ( 2                      ),
+        .MaxTrans   ( MaxTxns                ),
+        .AxiLookBits( $bits(error_req.aw.id) ), // TODO: not sure what this is?
+        .FallThrough( 1'b0                   ), // TODO: check what the right value is for them
+        .SpillAw    ( 1'b1                   ), 
+        .SpillW     ( 1'b0                   ),
+        .SpillB     ( 1'b0                   ),
+        .SpillAr    ( 1'b1                   ),
+        .SpillR     ( 1'b0                   )
+    ) axi_demux0 (
+        .clk_i          ( clk_i                    ),
+        .rst_ni         ( rst_ni                   ),
+        .test_i         ( 1'b0                     ),
+        .slv_aw_select_i( pmp_allow_w              ),
+        .slv_ar_select_i( pmp_allow_r              ),
+        .slv_req_i      ( slv_req_i                ),
+        .slv_resp_o     ( slv_rsp_o                ),
+        .mst_reqs_o     ( { mst_req_o, error_req } ), // { 1: mst, 0: error }
+        .mst_resps_i    ( { mst_rsp_i, error_rsp } ) 
     );
 
-    spill_register #(
-    .T       ( axi_w_chan_t       ),
-    .Bypass  ( Bypass             )
-    ) i_reg_w  (
-    .clk_i   ( clk_i              ),
-    .rst_ni  ( rst_ni             ),
-    .valid_i ( slv_req_i.w_valid  ),
-    .ready_o ( slv_resp_o.w_ready ),
-    .data_i  ( slv_req_i.w        ),
-    .valid_o ( mst_req_o.w_valid  ),
-    .ready_i ( mst_resp_i.w_ready ),
-    .data_o  ( mst_req_o.w        )
+    /*
+     * Respond to unauthorized transactions with slave errors
+     */
+    axi_err_slv #(
+        .AxiIdWidth( $bits(error_req.aw.id)  ),
+        .req_t     ( axi_req_t               ),
+        .resp_t    ( axi_rsp_t               ),
+        .Resp      ( axi_pkg::RESP_SLVERR    ), // Error generated by this slave.
+        .RespWidth ( $bits(error_rsp.r.data) ), // Data response width, gets zero extended or truncated to r.data.
+        .RespData  ( 64'hCA11AB1EBADCAB1E    ), // Hexvalue for data return value
+        .ATOPs     ( 1'b1                    ), // The burst splitter does not support ATOPs.
+        .MaxTrans  ( 2                       )  // TODO: find best value (area/power vs performance)
+    ) i_err_slv (
+        .clk_i     ( clk_i     ),
+        .rst_ni    ( rst_ni    ),
+        .test_i    ( 1'b0      ),
+        .slv_req_i ( error_req ),
+        .slv_resp_o( error_rsp )
     );
-
-    spill_register #(
-    .T       ( axi_b_chan_t       ),
-    .Bypass  ( Bypass             )
-    ) i_reg_b  (
-    .clk_i   ( clk_i              ),
-    .rst_ni  ( rst_ni             ),
-    .valid_i ( mst_resp_i.b_valid ),
-    .ready_o ( mst_req_o.b_ready  ),
-    .data_i  ( mst_resp_i.b       ),
-    .valid_o ( slv_resp_o.b_valid ),
-    .ready_i ( slv_req_i.b_ready  ),
-    .data_o  ( slv_resp_o.b       )
-    );
-
 
 endmodule
