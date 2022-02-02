@@ -99,7 +99,7 @@ module axi_master_connector #(
      * AXI request/response pair
      */
     input  axi_req_t                 axi_req_i,
-    output axi_rsp_t                 axi_resp_o
+    output axi_rsp_t                 axi_rsp_o
     );
 
     /*
@@ -118,7 +118,7 @@ module axi_master_connector #(
     assign m_axi_awregion      = axi_req_i.aw.region;
     assign m_axi_awuser        = axi_req_i.aw.user;
     assign m_axi_awvalid       = axi_req_i.aw_valid;
-    assign axi_resp_o.aw_ready = m_axi_awready;
+    assign axi_rsp_o.aw_ready  = m_axi_awready;
 
     /*
      * Write data channel
@@ -128,16 +128,16 @@ module axi_master_connector #(
     assign m_axi_wlast        = axi_req_i.w.last;
     assign m_axi_wuser        = axi_req_i.w.user;
     assign m_axi_wvalid       = axi_req_i.w_valid;
-    assign axi_resp_o.w_ready = m_axi_wready;
+    assign axi_rsp_o.w_ready  = m_axi_wready;
 
     /*
      * Write response channel
      */
-    assign axi_resp_o.b.id    = m_axi_bid;
-    assign axi_resp_o.b.resp  = m_axi_bresp;
-    assign axi_resp_o.b.user  = m_axi_buser;
-    assign axi_resp_o.b_valid = m_axi_bvalid;
-    assign m_axi_bready       = axi_req_i.b_ready;
+    assign axi_rsp_o.b.id    = m_axi_bid;
+    assign axi_rsp_o.b.resp  = m_axi_bresp;
+    assign axi_rsp_o.b.user  = m_axi_buser;
+    assign axi_rsp_o.b_valid = m_axi_bvalid;
+    assign m_axi_bready      = axi_req_i.b_ready;
 
     /*
      * Read address channel
@@ -154,17 +154,17 @@ module axi_master_connector #(
     assign m_axi_arregion      = axi_req_i.ar.region;
     assign m_axi_aruser        = axi_req_i.ar.user;
     assign m_axi_arvalid       = axi_req_i.ar_valid;
-    assign axi_resp_o.ar_ready = m_axi_arready;
+    assign axi_rsp_o.ar_ready  = m_axi_arready;
 
     /*
      * Read data channel
      */
-    assign axi_resp_o.r.id    = m_axi_rid;
-    assign axi_resp_o.r.data  = m_axi_rdata;
-    assign axi_resp_o.r.resp  = m_axi_rresp;
-    assign axi_resp_o.r.last  = m_axi_rlast;
-    assign axi_resp_o.r.user  = m_axi_ruser;
-    assign axi_resp_o.r_valid = m_axi_rvalid;
-    assign m_axi_rready       = axi_req_i.r_ready;
+    assign axi_rsp_o.r.id    = m_axi_rid;
+    assign axi_rsp_o.r.data  = m_axi_rdata;
+    assign axi_rsp_o.r.resp  = m_axi_rresp;
+    assign axi_rsp_o.r.last  = m_axi_rlast;
+    assign axi_rsp_o.r.user  = m_axi_ruser;
+    assign axi_rsp_o.r_valid = m_axi_rvalid;
+    assign m_axi_rready      = axi_req_i.r_ready;
 
 endmodule
