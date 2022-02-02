@@ -8,7 +8,7 @@ import cocotb_test.simulator
 from cocotb.clock import Clock
 from cocotb.regression import TestFactory
 from cocotb.triggers import RisingEdge
-from cocotbext.axi import AxiBus, AxiMaster, AxiRam
+from cocotbext.axi import AxiBus, AxiMaster, AxiRam, AxiSlave
 
 import math
 from enum import Enum
@@ -19,10 +19,6 @@ from bitarray.util import int2ba, ba2int
 class TB:
 
     def __init__(self, dut):
-        # activate for remote debugging
-        if "REMOTE" in os.environ:
-            import pydevd_pycharm
-            pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
 
         self.dut = dut
 
@@ -36,6 +32,9 @@ class TB:
 
         # connect a simulation axi ram (slave)
         self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "m_axi"), dut.clk, dut.rst, size=2 ** 16)
+
+        # connect simulation axi PMP config
+        self.axi_pmp_cfg = AxiMaster(AxiBus.from_prefix(dut, "cfg_axi"), dut.clk, dut.rst)
 
     async def cycle_reset(self):
         self.dut.rst.setimmediatevalue(0)
@@ -89,7 +88,7 @@ async def run_test(dut):
     # write data to RAM (in order to have a deterministic value to read)
     ##################
     addr = 0x0000_0000  # allowed range with address below: 0000_0000 - 0000_000f
-    length = 1
+    length = 4
     test_data = bytearray([x % 2 ** 8 for x in range(length)])
     tb.log.info("TEST: addr %d, length %d, data %s", addr, length, test_data.hex())  # ("_", 1))
     tb.axi_ram.write(addr, test_data)
@@ -97,39 +96,50 @@ async def run_test(dut):
     ###################
     # setup pmp entry
     ###################
-    tb.log.info("Before setting new conf reg: %s", tb.dut.axi_io_pmp0.cfg_reg[0].value)
-    tb.log.info("Before setting new add_reg: %s", tb.dut.axi_io_pmp0.cfg_addr_reg[0].value)
 
-    # config
+    # configuration
+    pmp_range_len = 32
     locked = bitarray("0")
     reserved = bitarray("00")
     mode = PMPMode.NAPOT.value
     access = PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value | PMPAccess.ACCESS_EXEC.value
     conf: bitarray = locked + reserved + mode + access
-    dut.axi_io_pmp0.cfg_reg[0].value = ba2int(conf)
+    tb.log.info("PMP cfg: %s", conf.to01())
     # address
     PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
-    napot_addr = int2ba(int(addr + (32 / 2 - 1)) >> 2, PMP_LEN)
-    tb.log.info("NAPOT addr: %s", napot_addr.to01())
+    napot_addr = int2ba(int(addr + (pmp_range_len / 2 - 1)) >> 2, PMP_LEN)
+    tb.log.info("PMP NAPOT addr: %s", napot_addr.to01())
 
-    dut.axi_io_pmp0.cfg_addr_reg[0].value = ba2int(napot_addr)
+    # write config
+    pmp0_addr = 0
+    pmp0_cfg = 0 + 16*8
+    await tb.axi_pmp_cfg.write(pmp0_addr, bytes([x for x in napot_addr.tobytes()] + (16-len(napot_addr.tobytes()))*[0]))
+    await tb.axi_pmp_cfg.write(pmp0_cfg, bytes((16-len(conf.tobytes()))*[0] + [x for x in conf.tobytes()]))
+    pmp0_addr_data = await tb.axi_pmp_cfg.read(pmp0_addr, 16)
+    pmp0_cfg_data = await tb.axi_pmp_cfg.read(pmp0_cfg, 16)
+    tb.log.info("PMP0 addr: %s", pmp0_addr_data)
+    tb.log.info("PMP0 cfg:  %s", pmp0_cfg_data)
 
-    await RisingEdge(dut.clk)
-
-    tb.log.info("After setting new conf reg:  %s", tb.dut.axi_io_pmp0.cfg_reg[0].value)
-    tb.log.info("After setting new add_reg:  %s", tb.dut.axi_io_pmp0.cfg_addr_reg[0].value)
 
     ##########################
     # read data through the IO-PMP
     ###########################
     data = await tb.axi_master.read(addr, length)
-    tb.log.info("PMP allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
     ###################
     # check result
     ###################
     assert data.data == test_data
 
+    await tb.axi_master.write(addr + 128, test_data)
+    data = await tb.axi_master.read(addr + 128, length)
+
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
+
+  
 
 if cocotb.SIM_NAME:
 
@@ -148,6 +158,12 @@ if cocotb.SIM_NAME:
 @pytest.mark.parametrize("addr_width", [64])  # [32, 64]
 @pytest.mark.parametrize("simulator", ["questa"])  # ["verilator", "questa"]
 def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
+
+    # activate for remote debugging
+    if "REMOTE" in os.environ:
+        import pydevd_pycharm
+        pydevd_pycharm.settrace('localhost', port=8080, stdoutToServer=True, stderrToServer=True)
+
     # extract & setup relevant information
     dut = "dut"
     module = os.path.splitext(os.path.basename(__file__))[0]
@@ -161,19 +177,40 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         # pulp-platform common_cells
         "common_cells/src/cf_math_pkg.sv",
         "common_cells/src/lzc.sv",
+        "common_cells/src/spill_register_flushable.sv",
         "common_cells/src/spill_register.sv",
+        "common_cells/src/deprecated/fifo_v2.sv",
+        "common_cells/src/fifo_v3.sv",
+        "common_cells/src/stream_register.sv",
+        "common_cells/src/stream_arbiter_flushable.sv",
+        "common_cells/src/stream_arbiter.sv",
         "common_cells/src/delta_counter.sv",
         "common_cells/src/counter.sv",
-        "common_cells/src/stream_delay.sv",
+        "common_cells/src/id_queue.sv",
+        "common_cells/src/rr_arb_tree.sv",
+        "common_cells/src/onehot_to_bin.sv",
 
         # pulp-platform axi
         "axi/src/axi_pkg.sv",
         "axi/src/axi_intf.sv",
+        "axi/src/axi_err_slv.sv",
+        "axi/src/axi_demux.sv",
+        "axi/src/axi_atop_filter.sv",
+        "axi/src/axi_burst_splitter.sv",
+        "axi/src/axi_to_axi_lite.sv",
         "axi/src/axi_cut.sv",
-        "axi/src/axi_delayer.sv",
+
+        # pulp-platform register interface
+        "register/io_pmp_reg_pkg.sv",
+        "register/io_pmp_reg_top.sv",
+        "register_interface/src/axi_to_reg.sv",
+        "register_interface/src/axi_lite_to_reg.sv",
+        "register_interface/vendor/lowrisc_opentitan/src/prim_subreg.sv",
+        "register_interface/vendor/lowrisc_opentitan/src/prim_subreg_arb.sv",
+        "register_interface/vendor/lowrisc_opentitan/src/prim_subreg_ext.sv",
+        "register_interface/vendor/lowrisc_opentitan/src/prim_subreg_shadow.sv",
 
         # axi connector
-        "connector/axi_conf.sv",
         "connector/axi_master_connector.sv",
         "connector/axi_slave_connector.sv",
 
@@ -185,7 +222,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
         # toplevel
         "axi_io_pmp.sv",
         f"{dut}.sv",
-
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
@@ -224,19 +260,22 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
             module=module
         )
         # suppress some verilator specific warnings (i.e. missing timescale information, ..)
-        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD",  "-Wno-CASEINCOMPLETE", "-Wno-WIDTH",  "-Wno-SELRANGE"]
+        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD", "-Wno-CASEINCOMPLETE", "-Wno-WIDTH", "-Wno-SELRANGE", "-Wno-CMPCONST", "-Wno-UNSIGNED"]
 
     elif simulator == "questa":
         sim = cocotb_test.simulator.Questa(
             toplevel=toplevel,
             module=module
         )
-        sim.compile_args += [
-            f"+define+DATA_WIDTH={parameters['DATA_WIDTH']}",
-            f"+define+ADDR_WIDTH={parameters['ADDR_WIDTH']}", 
-            f"+define+STRB_WIDTH={parameters['STRB_WIDTH']}", 
-            f"+define+ID_WIDTH={parameters['ID_WIDTH']}"
-            f"+define+USER_WIDTH={parameters['AWUSER_WIDTH']}"]
+
+        sim.compile_args += ["+define+TARGET_VSIM"] # activate axi_demux workaround
+
+        #sim.gui = True
+
+        # add coverage to questa
+        sim.compile_args += ["+cover bcs"]
+        coverage_file = "axi_io_pmp"
+        sim.simulation_args += ["-coverage -coveranalysis -cvgperinstance", f'-do "coverage save -codeAll -cvg -onexit {coverage_file}.ucdb;"']
 
     else:
         sim = cocotb_test.simulator.Simulator(
@@ -254,5 +293,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     sim.parameters = parameters
     sim.sim_build = sim_build
     sim.extra_env = extra_env
-    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)), ["pmp/include/", "common_cells/src/", "axi/include/", "connector/"]))
+    sim.includes = list(map(lambda x: os.path.abspath(os.path.join(src_dir, x)),
+                            ["axi/include/", "common_cells/include/", "register_interface/include/"]))
     sim.run()

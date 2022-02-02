@@ -4,23 +4,34 @@ package:
     - "Andreas Kuster <kustera@ethz.ch>"
 
 dependencies:
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.23.0 }
   axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.31.0 }
+  register_interface: { git: "https://github.com/pulp-platform/register_interface.git", version: 0.3.1 }
 
 export_include_dirs:
-  - src/pmp/include
+  - src/common_cells/include
   - src/axi/include
+  - src/register_interface/include
 
 sources:
   ##########
   # packages
   ##########
+  - src/connector/axi_conf.sv
   - src/pmp/include/riscv.sv
   ##########
   # Sources
   ##########
-  # Common
-  - src/common/axi_master_connect.sv
-  - src/common/axi_slave_connect.sv
+  # Top level
+  - src/axi_io_pmp.sv
+  # AXI connector
+  - src/connector/axi_master_connector.sv
+  - src/connector/axi_slave_connector.sv
+  # Register
+  - src/register_interface/vendor/lowrisc_opentitan/src/prim_subreg.sv
+  - src/register_interface/vendor/lowrisc_opentitan/src/prim_subreg_arb.sv
+  - src/register_interface/vendor/lowrisc_opentitan/src/prim_subreg_ext.sv
+  - src/register_interface/vendor/lowrisc_opentitan/src/prim_subreg_shadow.sv
   # PMP
   - src/pmp/pmp_entry.sv
   - src/pmp/pmp.sv

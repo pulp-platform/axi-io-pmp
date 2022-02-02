@@ -11,90 +11,95 @@
 // Author:      Andreas Kuster, <kustera@ethz.ch>
 // Description: AXI master to (req_t, resp_t) pair connector (pulp-platform interface)
 
+`timescale 1ns / 1ps
+
 module axi_master_connector #(
     // Width of data bus in bits
-    parameter DATA_WIDTH   = 32,
+    parameter DATA_WIDTH     = 32,
     // Width of address bus in bits
-    parameter ADDR_WIDTH   = 32,
+    parameter ADDR_WIDTH     = 32,
     // Width of strobe (width of data bus in words)
-    parameter STRB_WIDTH   = (DATA_WIDTH / 8),
+    parameter STRB_WIDTH     = (DATA_WIDTH / 8),
     // Width of id signal
-    parameter ID_WIDTH     = 8,
+    parameter ID_WIDTH       = 8,
     // Width of awuser signal
-    parameter AWUSER_WIDTH = 1,
+    parameter AWUSER_WIDTH   = 1,
     // Width of wuser signal
-    parameter WUSER_WIDTH  = 1,
+    parameter WUSER_WIDTH    = 1,
     // Width of buser signal
-    parameter BUSER_WIDTH  = 1,
+    parameter BUSER_WIDTH    = 1,
     // Width of aruser signal
-    parameter ARUSER_WIDTH = 1,
+    parameter ARUSER_WIDTH   = 1,
     // Width of ruser signal
-    parameter RUSER_WIDTH  = 1
+    parameter RUSER_WIDTH    = 1,
+    // AXI request/response
+    parameter type axi_req_t = logic,
+    parameter type axi_rsp_t = logic
 ) (
     /*
      * Write address channel
      */
-    output [ID_WIDTH-1:0]      m_axi_awid,
-    output [ADDR_WIDTH-1:0]    m_axi_awaddr,
-    output [7:0]               m_axi_awlen,
-    output [2:0]               m_axi_awsize,
-    output [1:0]               m_axi_awburst,
-    output                     m_axi_awlock,
-    output [3:0]               m_axi_awcache,
-    output [2:0]               m_axi_awprot,
-    output [3:0]               m_axi_awqos,
-    output [3:0]               m_axi_awregion,
-    output [AWUSER_WIDTH-1:0]  m_axi_awuser,
-    output                     m_axi_awvalid,
-    input                      m_axi_awready,
+    output logic [ID_WIDTH-1:0]      m_axi_awid,
+    output logic [ADDR_WIDTH-1:0]    m_axi_awaddr,
+    output logic [7:0]               m_axi_awlen,
+    output logic [2:0]               m_axi_awsize,
+    output logic [1:0]               m_axi_awburst,
+    output logic                     m_axi_awlock,
+    output logic [3:0]               m_axi_awcache,
+    output logic [2:0]               m_axi_awprot,
+    output logic [3:0]               m_axi_awqos,
+    output logic [3:0]               m_axi_awregion,
+    output logic [AWUSER_WIDTH-1:0]  m_axi_awuser,
+    output logic                     m_axi_awvalid,
+    input  logic                     m_axi_awready,
     /*
      * Write data channel
      */
-    output [DATA_WIDTH-1:0]    m_axi_wdata,
-    output [STRB_WIDTH-1:0]    m_axi_wstrb,
-    output                     m_axi_wlast,
-    output [WUSER_WIDTH-1:0]   m_axi_wuser,
-    output                     m_axi_wvalid,
-    input                      m_axi_wready,
+    output logic [DATA_WIDTH-1:0]    m_axi_wdata,
+    output logic [STRB_WIDTH-1:0]    m_axi_wstrb,
+    output logic                     m_axi_wlast,
+    output logic [WUSER_WIDTH-1:0]   m_axi_wuser,
+    output logic                     m_axi_wvalid,
+    input  logic                     m_axi_wready,
     /*
      * Write response channel
      */
-    input  [ID_WIDTH-1:0]      m_axi_bid,
-    input  [1:0]               m_axi_bresp,
-    input  [BUSER_WIDTH-1:0]   m_axi_buser,
-    input                      m_axi_bvalid,
-    output                     m_axi_bready,
+    input  logic [ID_WIDTH-1:0]      m_axi_bid,
+    input  logic [1:0]               m_axi_bresp,
+    input  logic [BUSER_WIDTH-1:0]   m_axi_buser,
+    input  logic                     m_axi_bvalid,
+    output logic                     m_axi_bready,
     /*
      * Read address channel
      */
-    output [ID_WIDTH-1:0]      m_axi_arid,
-    output [ADDR_WIDTH-1:0]    m_axi_araddr,
-    output [7:0]               m_axi_arlen,
-    output [2:0]               m_axi_arsize,
-    output [1:0]               m_axi_arburst,
-    output                     m_axi_arlock,
-    output [3:0]               m_axi_arcache,
-    output [2:0]               m_axi_arprot,
-    output [3:0]               m_axi_arqos,
-    output [3:0]               m_axi_arregion,
-    output [ARUSER_WIDTH-1:0]  m_axi_aruser,
-    output                     m_axi_arvalid,
-    input                      m_axi_arready,
+    output logic [ID_WIDTH-1:0]      m_axi_arid,
+    output logic [ADDR_WIDTH-1:0]    m_axi_araddr,
+    output logic [7:0]               m_axi_arlen,
+    output logic [2:0]               m_axi_arsize,
+    output logic [1:0]               m_axi_arburst,
+    output logic                     m_axi_arlock,
+    output logic [3:0]               m_axi_arcache,
+    output logic [2:0]               m_axi_arprot,
+    output logic [3:0]               m_axi_arqos,
+    output logic [3:0]               m_axi_arregion,
+    output logic [ARUSER_WIDTH-1:0]  m_axi_aruser,
+    output logic                     m_axi_arvalid,
+    input  logic                     m_axi_arready,
     /*
      * Read data channel
      */
-    input  [ID_WIDTH-1:0]      m_axi_rid,
-    input  [DATA_WIDTH-1:0]    m_axi_rdata,
-    input  [1:0]               m_axi_rresp,
-    input                      m_axi_rlast,
-    input  [RUSER_WIDTH-1:0]   m_axi_ruser,
-    input                      m_axi_rvalid,
-    output                     m_axi_rready,
+    input  logic [ID_WIDTH-1:0]      m_axi_rid,
+    input  logic [DATA_WIDTH-1:0]    m_axi_rdata,
+    input  logic [1:0]               m_axi_rresp,
+    input  logic                     m_axi_rlast,
+    input  logic [RUSER_WIDTH-1:0]   m_axi_ruser,
+    input  logic                     m_axi_rvalid,
+    output logic                     m_axi_rready,
     /*
      * AXI request/response pair
      */
-    input  axi_conf::req_t     axi_req_i,
-    output axi_conf::resp_t    axi_resp_o
+    input  axi_req_t                 axi_req_i,
+    output axi_rsp_t                 axi_rsp_o
     );
 
     /*
@@ -113,7 +118,7 @@ module axi_master_connector #(
     assign m_axi_awregion      = axi_req_i.aw.region;
     assign m_axi_awuser        = axi_req_i.aw.user;
     assign m_axi_awvalid       = axi_req_i.aw_valid;
-    assign axi_resp_o.aw_ready = m_axi_awready;
+    assign axi_rsp_o.aw_ready  = m_axi_awready;
 
     /*
      * Write data channel
@@ -123,16 +128,16 @@ module axi_master_connector #(
     assign m_axi_wlast        = axi_req_i.w.last;
     assign m_axi_wuser        = axi_req_i.w.user;
     assign m_axi_wvalid       = axi_req_i.w_valid;
-    assign axi_resp_o.w_ready = m_axi_wready;
+    assign axi_rsp_o.w_ready  = m_axi_wready;
 
     /*
      * Write response channel
      */
-    assign axi_resp_o.b.id    = m_axi_bid;
-    assign axi_resp_o.b.resp  = m_axi_bresp;
-    assign axi_resp_o.b.user  = m_axi_buser;
-    assign axi_resp_o.b_valid = m_axi_bvalid;
-    assign m_axi_bready       = axi_req_i.b_ready;
+    assign axi_rsp_o.b.id    = m_axi_bid;
+    assign axi_rsp_o.b.resp  = m_axi_bresp;
+    assign axi_rsp_o.b.user  = m_axi_buser;
+    assign axi_rsp_o.b_valid = m_axi_bvalid;
+    assign m_axi_bready      = axi_req_i.b_ready;
 
     /*
      * Read address channel
@@ -149,17 +154,17 @@ module axi_master_connector #(
     assign m_axi_arregion      = axi_req_i.ar.region;
     assign m_axi_aruser        = axi_req_i.ar.user;
     assign m_axi_arvalid       = axi_req_i.ar_valid;
-    assign axi_resp_o.ar_ready = m_axi_arready;
+    assign axi_rsp_o.ar_ready  = m_axi_arready;
 
     /*
      * Read data channel
      */
-    assign axi_resp_o.r.id    = m_axi_rid;
-    assign axi_resp_o.r.data  = m_axi_rdata;
-    assign axi_resp_o.r.resp  = m_axi_rresp;
-    assign axi_resp_o.r.last  = m_axi_rlast;
-    assign axi_resp_o.r.user  = m_axi_ruser;
-    assign axi_resp_o.r_valid = m_axi_rvalid;
-    assign m_axi_rready       = axi_req_i.r_ready;
+    assign axi_rsp_o.r.id    = m_axi_rid;
+    assign axi_rsp_o.r.data  = m_axi_rdata;
+    assign axi_rsp_o.r.resp  = m_axi_rresp;
+    assign axi_rsp_o.r.last  = m_axi_rlast;
+    assign axi_rsp_o.r.user  = m_axi_ruser;
+    assign axi_rsp_o.r_valid = m_axi_rvalid;
+    assign m_axi_rready      = axi_req_i.r_ready;
 
 endmodule

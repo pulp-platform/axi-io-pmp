@@ -1,4 +1,5 @@
 [![AXI IO-PMP Tests](https://github.com/andreaskuster/axi-io-pmp/actions/workflows/main.yml/badge.svg)](https://github.com/andreaskuster/axi-io-pmp/actions/workflows/main.yml)
+[![SHL-0.51 license](https://img.shields.io/badge/license-SHL--0.51-green)](LICENSE)
 
 # RISC-V AXI IO-PMP 
 TODO: add description
@@ -18,7 +19,7 @@ pytest tb/
 
 Show waveform of the simulation:
 ```bash
-gtkwave tb/axi_io_pmp.vcd
+gtkwave sim_build/axi_io_pmp.vcd
 ```
 
 
@@ -33,6 +34,33 @@ gtkwave tb/axi_io_pmp.vcd
 | [`axi_slave_connector`](src/connector/axi_slave_connector.sv)   |             |
 | [`riscv`](src/include/riscv.sv)                                 |             |
 | [`pmp`](src/pmp/pmp.sv)                                         |             |
+
+
+### AXI Compliance and PMP Correctness
+
+Even though a AXI4 burst transaction could theoretically be 256 transfers with a burst size of 128 (given 128bit data width) resulting in a total burst size of 8KB (INCR type), however a burst must not cross a 4KB address boundary, which means that the maximal burst size is 4KB. 
+
+- Write Burst
+
+With a granularity of 4KB, we can check every burst in a single cycle (given the PMP can check one address per cycle). This is a trade-off. One could also multi-cycle check the whole burst interval while stalling the transaction until ready. And then signal the response. A hybrid version is to buffer all write, while checking the regions, and letting them through upon success, or throw them away upon failure (while sending feedback afterwards)
+
+- Read Burst
+
+With a granularity of 4KB, we can check every burst in a single cycle (given the PMP can check one address per cycle). This is a trade-off. One could also multi-cycle check the whole burst interval while stalling the transaction until ready.
+
+This makes the read response compliant to AXI specs as well (i.e. every transfer gets a SLVERR, AXI states to sent OKAY/SLVERR/.. per transfer, and generally not for the whole burst). This is a trade-off. One could also split the burst, and assemble it again (signaling the ones that are OKAY, as OKAY, and inserting those that were blocked as SLVERR with no valid data)
+
+
+
+### Register Generation
+TODO: add a few words about OpenTitan & regtool.py
+
+```bash
+cd src/register
+make
+```
+
+More information can be found in the [OpenTitan Register Tool Doc](https://docs.opentitan.org/doc/rm/register_tool/).
 
 
 ### Frequently Asked Questions
