@@ -125,13 +125,21 @@ async def run_test(dut):
     # read data through the IO-PMP
     ###########################
     data = await tb.axi_master.read(addr, length)
-    tb.log.info("PMP allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
     ###################
     # check result
     ###################
     assert data.data == test_data
 
+    await tb.axi_master.write(addr + 128, test_data)
+    data = await tb.axi_master.read(addr + 128, length)
+
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
+
+  
 
 if cocotb.SIM_NAME:
 
@@ -262,7 +270,7 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
 
         sim.compile_args += ["+define+TARGET_VSIM"] # activate axi_demux workaround
 
-        # sim.gui = True
+        #sim.gui = True
 
         # add coverage to questa
         sim.compile_args += ["+cover bcs"]
