@@ -25,7 +25,7 @@ xargs sudo apt-get -y install < ubuntu_requirements.txt
 
 # install python virtual environment
 git submodule update --init --recursive
-virtualenv -p python3 venv
+python3 -m venv venv/
 source venv/bin/activate
 python3 -m pip install -r requirements.txt
 
