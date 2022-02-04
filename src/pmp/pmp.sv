@@ -9,27 +9,27 @@
 // specific language governing permissions and limitations under the License.
 //
 // Author: Moritz Schneider, ETH Zurich
-// Date: 2.10.2019
-// Description: purely combinatorial PMP unit (with extraction for more complex configs such as NAPOT)
+//         Andreas Kuster, <kustera@ethz.ch>
+// Description: Purely combinatorial PMP unit (with extraction for more complex configs such as NAPOT)
 
 `timescale 1ns / 1ps
 
 module pmp #(
-    parameter int unsigned PLEN = 34,       // rv64: 56
-    parameter int unsigned PMP_LEN = 32,    // rv64: 54
-    parameter int unsigned NR_ENTRIES = 4,
+    parameter int unsigned PLEN           = 56, // rv32: 34
+    parameter int unsigned PMP_LEN        = 54, // rv32: 32
+    parameter int unsigned NR_ENTRIES     = 4,
     // 0 = 4bytes NA4 / 8bytes NAPOT (default), 1 = 16 byte NAPOT, 2 = 32 byte NAPOT, 3 = 64 byte NAPOT, etc.
     parameter int unsigned PMPGranularity = 0
 ) (
     // Input
-    input logic [PLEN-1:0] addr_i,
-    input riscv::pmp_access_t access_type_i,
-    input riscv::priv_lvl_t priv_lvl_i,
+    input logic [PLEN-1:0]          addr_i,
+    input riscv::pmp_access_t       access_type_i,
+    input riscv::priv_lvl_t         priv_lvl_i,
     // Configuration
     input logic [15:0][PMP_LEN-1:0] conf_addr_i,
-    input riscv::pmpcfg_t [15:0] conf_i,
+    input riscv::pmpcfg_t [15:0]    conf_i,
     // Output
-    output logic allow_o
+    output logic                    allow_o
 );
     // if there are no PMPs we can always grant the access.
     if (NR_ENTRIES > 0) begin : gen_pmp

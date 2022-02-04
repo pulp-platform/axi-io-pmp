@@ -9,27 +9,25 @@
 // specific language governing permissions and limitations under the License.
 //
 // Author: Moritz Schneider, ETH Zurich
-// Date: 2.10.2019
-// Description: single PMP entry
+//         Andreas Kuster, <kustera@ethz.ch>
+// Description: Single PMP entry
 
 `timescale 1ns / 1ps
 
 module pmp_entry #(
-    parameter int unsigned PLEN = 56,
-    parameter int unsigned PMP_LEN = 54,
+    parameter int unsigned PLEN           = 56,
+    parameter int unsigned PMP_LEN        = 54,
     // 0 = 4bytes NA4 / 8bytes NAPOT (default), 1 = 16 byte NAPOT, 2 = 32 byte NAPOT, 3 = 64 byte NAPOT, etc.
     parameter int unsigned PMPGranularity = 0
 ) (
     // Input
-    input logic [PLEN-1:0] addr_i,
-
+    input logic [PLEN-1:0]       addr_i,
     // Configuration
-    input logic [PMP_LEN-1:0] conf_addr_i,
-    input logic [PMP_LEN-1:0] conf_addr_prev_i,
+    input logic [PMP_LEN-1:0]    conf_addr_i,
+    input logic [PMP_LEN-1:0]    conf_addr_prev_i,
     input riscv::pmp_addr_mode_t conf_addr_mode_i,
-
     // Output
-    output logic match_o
+    output logic                 match_o
 );
     logic [PLEN-1:0] conf_addr_n;
     logic [$clog2(PLEN)-1:0] trail_ones;
@@ -49,13 +47,13 @@ module pmp_entry #(
                     match_o = 1'b1;
                 end else match_o = 1'b0;
 
-                // `ifdef FORMAL
-                // if (match_o == 0) begin
-                //     assert(addr_i >= (conf_addr_i << (2 + PMPGranularity)) || addr_i < (conf_addr_prev_i << (2 + PMPGranularity)));
-                // end else begin
-                //     assert(addr_i < (conf_addr_i << (2 + PMPGranularity)) && addr_i >= (conf_addr_prev_i << (2 + PMPGranularity)));
-                // end
-                // `endif
+                `ifdef FORMAL
+                if (match_o == 0) begin
+                    assert(addr_i >= (conf_addr_i << (2 + PMPGranularity)) || addr_i < (conf_addr_prev_i << (2 + PMPGranularity)));
+                end else begin
+                    assert(addr_i < (conf_addr_i << (2 + PMPGranularity)) && addr_i >= (conf_addr_prev_i << (2 + PMPGranularity)));
+                end
+                `endif
             end
             riscv::NA4, riscv::NAPOT:   begin
 
@@ -78,7 +76,7 @@ module pmp_entry #(
                     base = (conf_addr_i << (2 + PMPGranularity)) & mask;
                     match_o = (addr_i & mask) == base ? 1'b1 : 1'b0;
 
-                    // `ifdef FORMAL
+                    // `ifdef FORMAL // TODO: update them to support granularity in the calculation
                     // // size extract checks
                     // assert(size >= 2);
                     // if (conf_addr_mode_i == riscv::NAPOT) begin
