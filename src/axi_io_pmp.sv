@@ -58,47 +58,41 @@ module axi_io_pmp #(
      */
     io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
     io_pmp_reg_pkg::io_pmp_hw2reg_t io_pmp_hw2reg;
-    // localparam logic[53:0] granularity = {42'd0 , 12'hfff}; // enforce 4k
 
-    // reg_req_t cfg_req_mod;
-    // always_comb begin
+    /*
+     * RISC-V Privilege Specs: 
+     *  - "When G ≥ 2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits pmpaddri[G-2:0] read as all ones."
+     *  - "When G ≥ 1 and pmpcfgi.A[1] is clear, i.e. the mode is OFF or TOR, then bits pmpaddri[G-1:0] read as all zeros."
+     */
+    reg_rsp_t cfg_rsp_mod;
+    always_comb begin
 
-    //     cfg_req_mod.addr = cfg_req_i.addr;
-    //     cfg_req_mod.write = cfg_req_i.write;
-    //     //cfg_req_mod.wdata = cfg_req_i.wdata;
-    //     cfg_req_mod.wstrb = cfg_req_i.wstrb;
-    //     cfg_req_mod.valid = cfg_req_i.valid;
+        // default pass through
+        cfg_rsp_o.rdata = cfg_rsp_mod.rdata;
+        cfg_rsp_o.error = cfg_rsp_mod.error;
+        cfg_rsp_o.ready = cfg_rsp_mod.ready;
 
-    //     if(cfg_req_i.write) begin
+        // modify response with granularity
+        if(!cfg_req_i.write) begin // read access
 
-    //         if(cfg_req_i.addr >= io_pmp_reg_pkg::IO_PMP_PMP_ADDR_0_OFFSET && cfg_req_i.addr < io_pmp_reg_pkg::IO_PMP_PMP_ADDR_15_OFFSET) begin // request writes new addr
+            static int index = (cfg_req_i.addr - io_pmp_reg_pkg::IO_PMP_PMP_ADDR_0_OFFSET) >> 3;
 
+            if(!io_pmp_reg2hw.pmp_cfg[index][4] &&  PMPGranularity >= 1) begin  // riscv::OFF or riscv::TOR -> force 0 for bits [G-1:0] where G is the granularity
 
-    //             static int index = (cfg_req_i.addr - io_pmp_reg_pkg::IO_PMP_PMP_ADDR_0_OFFSET) >> 3;
+                cfg_rsp_o.rdata[PMPGranularity-1:0] = { PMPGranularity{1'b0} };
+            end
 
-    //             if(io_pmp_reg2hw.pmp_cfg[index].addr_mode == riscv::TOR) begin  // TOR
+            if(io_pmp_reg2hw.pmp_cfg[index][4] &&  PMPGranularity >= 2) begin // riscv::NAPOT -> force 1 for bits [G-2:0] where G is the granularity
+                
+                cfg_rsp_o.rdata[PMPGranularity-2:0] = { (PMPGranularity-1){1'b1} };
+            end
 
-    //                 cfg_req_mod.wdata = cfg_req_mod.wdata & (~granularity); // enforce granularity
+            // TODO: handle case PMPGranularity ==1 && riscv::NAPOT ?
 
-    //             end else if(io_pmp_reg2hw.pmp_cfg[index].addr_mode == riscv::NA4 || io_pmp_reg2hw.pmp_cfg[index].addr_mode == riscv::NAPOT) begin // NAPOT & NA4
-
-    //                 logic [$bits(io_pmp_reg2hw.pmp_granularity)-1:0] mask0, mask1; // mask0: add 1s i.e. xxxx0111    mask1: add zero i.e. xxx0111
-    //                 mask0 = granularity >> 1;
-    //                 mask1 = ~(mask0 ^ granularity);
-
-    //                 cfg_req_mod.wdata = (cfg_req_i.wdata | mask0) & mask1;
-
-    //             end else begin // OFF
-    //                 cfg_req_mod.wdata = cfg_req_i.wdata; // do nothing
-    //             end
-
-    //         end
+        end
+    end
 
 
-
-    //     end
-
-    // end
 
     io_pmp_reg_top #(
         .AW       ( $bits(cfg_req_i.addr) ),
@@ -109,33 +103,13 @@ module axi_io_pmp #(
         .rst_ni   ( rst_ni        ),
         .devmode_i( 1'b0          ), // if 1, explicit error return for unmapped register access
         // register interface
-        .reg_req_i( cfg_req_i   ),
-        .reg_rsp_o( cfg_rsp_o     ),
+        .reg_req_i( cfg_req_i     ),
+        .reg_rsp_o( cfg_rsp_mod   ),
         // from hardware to register
         .hw2reg   ( io_pmp_hw2reg ),
         // from registers to hardware 
         .reg2hw   ( io_pmp_reg2hw ) 
     ); 
-
-
-/*
-
-    typedef struct packed { \
-        addr_t addr; \
-        logic  write; \
-        data_t wdata; \
-        strb_t wstrb; \
-        logic  valid; \
-    } req_t;
-
-    typedef struct packed { \
-        data_t rdata; \
-        logic  error; \
-        logic  ready; \
-    } rsp_t;
-
-    */
-
 
 
     /*
