@@ -33,6 +33,7 @@ module axi_io_pmp #(
     parameter int unsigned PMP_LEN     = 54, // rv64: 54, rv32: 32
     parameter int unsigned NR_ENTRIES  = 16,
     parameter int unsigned MAX_ENTRIES = 16,
+    parameter int unsigned PMPGranularity = 9, // 4K
     // AXI parameters
     // maximum number of AXI bursts outstanding at the same time
     parameter int unsigned MaxTxns  = 32'd1
@@ -56,6 +57,49 @@ module axi_io_pmp #(
      * Device configuration and status registers
      */
     io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
+    io_pmp_reg_pkg::io_pmp_hw2reg_t io_pmp_hw2reg;
+    // localparam logic[53:0] granularity = {42'd0 , 12'hfff}; // enforce 4k
+
+    // reg_req_t cfg_req_mod;
+    // always_comb begin
+
+    //     cfg_req_mod.addr = cfg_req_i.addr;
+    //     cfg_req_mod.write = cfg_req_i.write;
+    //     //cfg_req_mod.wdata = cfg_req_i.wdata;
+    //     cfg_req_mod.wstrb = cfg_req_i.wstrb;
+    //     cfg_req_mod.valid = cfg_req_i.valid;
+
+    //     if(cfg_req_i.write) begin
+
+    //         if(cfg_req_i.addr >= io_pmp_reg_pkg::IO_PMP_PMP_ADDR_0_OFFSET && cfg_req_i.addr < io_pmp_reg_pkg::IO_PMP_PMP_ADDR_15_OFFSET) begin // request writes new addr
+
+
+    //             static int index = (cfg_req_i.addr - io_pmp_reg_pkg::IO_PMP_PMP_ADDR_0_OFFSET) >> 3;
+
+    //             if(io_pmp_reg2hw.pmp_cfg[index].addr_mode == riscv::TOR) begin  // TOR
+
+    //                 cfg_req_mod.wdata = cfg_req_mod.wdata & (~granularity); // enforce granularity
+
+    //             end else if(io_pmp_reg2hw.pmp_cfg[index].addr_mode == riscv::NA4 || io_pmp_reg2hw.pmp_cfg[index].addr_mode == riscv::NAPOT) begin // NAPOT & NA4
+
+    //                 logic [$bits(io_pmp_reg2hw.pmp_granularity)-1:0] mask0, mask1; // mask0: add 1s i.e. xxxx0111    mask1: add zero i.e. xxx0111
+    //                 mask0 = granularity >> 1;
+    //                 mask1 = ~(mask0 ^ granularity);
+
+    //                 cfg_req_mod.wdata = (cfg_req_i.wdata | mask0) & mask1;
+
+    //             end else begin // OFF
+    //                 cfg_req_mod.wdata = cfg_req_i.wdata; // do nothing
+    //             end
+
+    //         end
+
+
+
+    //     end
+
+    // end
+
     io_pmp_reg_top #(
         .AW       ( $bits(cfg_req_i.addr) ),
         .reg_req_t( reg_req_t             ),
@@ -65,11 +109,32 @@ module axi_io_pmp #(
         .rst_ni   ( rst_ni        ),
         .devmode_i( 1'b0          ), // if 1, explicit error return for unmapped register access
         // register interface
-        .reg_req_i( cfg_req_i     ),
+        .reg_req_i( cfg_req_i   ),
         .reg_rsp_o( cfg_rsp_o     ),
-        // to HW
-        .reg2hw   ( io_pmp_reg2hw ) // from registers to hardware
+        // from hardware to register
+        .hw2reg   ( io_pmp_hw2reg ),
+        // from registers to hardware 
+        .reg2hw   ( io_pmp_reg2hw ) 
     ); 
+
+
+/*
+
+    typedef struct packed { \
+        addr_t addr; \
+        logic  write; \
+        data_t wdata; \
+        strb_t wstrb; \
+        logic  valid; \
+    } req_t;
+
+    typedef struct packed { \
+        data_t rdata; \
+        logic  error; \
+        logic  ready; \
+    } rsp_t;
+
+    */
 
 
 
@@ -92,7 +157,8 @@ module axi_io_pmp #(
     pmp #(
         .PLEN      ( PLEN       ),
         .PMP_LEN   ( PMP_LEN    ),
-        .NR_ENTRIES( NR_ENTRIES )
+        .NR_ENTRIES( NR_ENTRIES ),
+        .PMPGranularity(PMPGranularity)
     ) pmp0 (
         // input
         .addr_i       ( pmp_addr_r             ), // [PLEN-1:0], TODO: check if we slice the right bits
@@ -124,7 +190,8 @@ module axi_io_pmp #(
     pmp #(
         .PLEN      ( PLEN       ),
         .PMP_LEN   ( PMP_LEN    ),
-        .NR_ENTRIES( NR_ENTRIES )
+        .NR_ENTRIES( NR_ENTRIES ),
+        .PMPGranularity(PMPGranularity)
     ) pmp1 (
         // input
         .addr_i       ( pmp_addr_w             ), // [PLEN-1:0], TODO: check if we slice the right bits
