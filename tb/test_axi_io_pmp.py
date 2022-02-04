@@ -157,7 +157,6 @@ async def run_test(dut):
     #####
     # check highest valid addr
     #####
-
     test = 4*1024-4 # highest address that is still valid for 4byte read
     await tb.axi_master.write(addr + test, test_data)
     data = await tb.axi_master.read(addr + test, length)
@@ -172,13 +171,26 @@ async def run_test(dut):
     #####
     # check lowest invalid addr
     #####
-
-    test = 4 * 1024
+    test = 4*1024 # lowest address that is out of PMP region
     await tb.axi_master.write(addr + test, test_data)
     data = await tb.axi_master.read(addr + test, length)
 
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
+
     assert(dut.axi_io_pmp0.pmp0.allow_o.value == 0)
     assert(dut.axi_io_pmp0.pmp1.allow_o.value == 0)
+
+
+    #####
+    # check boundary crossing
+    #####
+    test = 4 * 1024-8
+    await tb.axi_master.write(addr + test, (42).to_bytes(16, byteorder="little"))
+    data = await tb.axi_master.read(addr + test, 16)
+
+    assert(data.data != 42)
+
 
 
 if cocotb.SIM_NAME:
