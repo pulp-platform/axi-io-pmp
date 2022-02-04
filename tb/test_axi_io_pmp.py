@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import pytest
 
@@ -9,6 +10,8 @@ from cocotb.clock import Clock
 from cocotb.regression import TestFactory
 from cocotb.triggers import RisingEdge
 from cocotbext.axi import AxiBus, AxiMaster, AxiRam, AxiSlave
+
+import numpy as np
 
 import math
 from enum import Enum
@@ -61,20 +64,58 @@ class PMPAccess(Enum):
     ACCESS_WRITE = bitarray("010")
     ACCESS_EXEC = bitarray("100")
 
+def get_addr_offset():
+    # extract address offset from auto-generated pmp header
+    file = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'src/register/io_pmp.h'))
+    with open(file) as f:
+        header = f.read()
+        params = {
+            "IO_PMP_PMP_ADDR_0_REG_OFFSET": None,
+            "IO_PMP_PMP_CFG_0_REG_OFFSET": None
+        }
+        for param in params:
+            x = re.search(
+                f"{param}[^/]0x([0-9a-fA-F]+)",
+                header
+            )
+            params[param] = int(x.group(1), 16)
+    return params
 
-def set_pmp_napot(base: int, range: int, access: bitarray, PMP_LEN=54):
+
+async def set_pmp_napot(tb, base: int, range: int, access: bitarray, pmp_no: int, PMP_LEN=54):
+
+    # read base addresses (addr & cfg from header)
+    params = get_addr_offset()
+
     # config
     locked = bitarray("0")
     reserved = bitarray("00")
     mode = PMPMode.NAPOT.value
     conf: bitarray = locked + reserved + mode + access
+    tb.log.info("PMP cfg: %s", conf.to01())
+    # address
+    PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
+    napot_addr = int(base + (range / 2 - 1)) >> 2
+    tb.log.info("PMP NAPOT addr: %s", int2ba(napot_addr, PMP_LEN).to01())
 
-    # address (NAPOT)
-    assert (2 ** math.log2(range) == range)  # check range is 2**X
-    address: bitarray = int2ba(int(base + (range / 2 - 1)) >> 2, PMP_LEN)
+    # write config
+    pmp0_addr = params["IO_PMP_PMP_ADDR_0_REG_OFFSET"] + 8*pmp_no
+    res = await tb.axi_pmp_cfg.read(pmp0_addr + 8, 8)
+    pmp_next = int.from_bytes(res.data, byteorder="little")  # workaround: we can only write  >= 16bytes (axi_to_reg issue), therefore we read address above first, and write back both
+    await tb.axi_pmp_cfg.write(pmp0_addr, (napot_addr + (pmp_next * (2**64))).to_bytes(16, byteorder='little'))
 
-    # return (conf, addr) tuple
-    return conf, address
+    pmp0_cfg = params["IO_PMP_PMP_CFG_0_REG_OFFSET"]
+    res = await tb.axi_pmp_cfg.read(pmp0_cfg, 16)
+    pmp_cfg_data = int.from_bytes(res.data, byteorder="little")
+
+    # remove old value
+    pmp_cfg_data = pmp_cfg_data & (0xf << (8 * pmp_no))
+
+    # insert new value
+    pmp_cfg_data = pmp_cfg_data | (ba2int(conf) << (8 * pmp_no) )
+
+    # send back
+    await tb.axi_pmp_cfg.write(pmp0_cfg, (pmp_cfg_data).to_bytes(16, byteorder='little'))
 
 
 async def run_test(dut):
@@ -98,28 +139,8 @@ async def run_test(dut):
     ###################
 
     # configuration
-    pmp_range_len = 32
-    locked = bitarray("0")
-    reserved = bitarray("00")
-    mode = PMPMode.NAPOT.value
-    access = PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value | PMPAccess.ACCESS_EXEC.value
-    conf: bitarray = locked + reserved + mode + access
-    tb.log.info("PMP cfg: %s", conf.to01())
-    # address
-    PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
-    napot_addr = int2ba(int(addr + (pmp_range_len / 2 - 1)) >> 2, PMP_LEN)
-    tb.log.info("PMP NAPOT addr: %s", napot_addr.to01())
-
-    # write config
-    pmp0_addr = 0
-    pmp0_cfg = 0 + 16*8
-    await tb.axi_pmp_cfg.write(pmp0_addr, bytes([x for x in napot_addr.tobytes()] + (16-len(napot_addr.tobytes()))*[0]))
-    await tb.axi_pmp_cfg.write(pmp0_cfg, bytes((16-len(conf.tobytes()))*[0] + [x for x in conf.tobytes()]))
-    pmp0_addr_data = await tb.axi_pmp_cfg.read(pmp0_addr, 16)
-    pmp0_cfg_data = await tb.axi_pmp_cfg.read(pmp0_cfg, 16)
-    tb.log.info("PMP0 addr: %s", pmp0_addr_data)
-    tb.log.info("PMP0 cfg:  %s", pmp0_cfg_data)
-
+    pmp_range_len = 8 #2**12
+    await set_pmp_napot(tb, 0, pmp_range_len, PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value, 0)
 
     ##########################
     # read data through the IO-PMP
@@ -133,13 +154,32 @@ async def run_test(dut):
     ###################
     assert data.data == test_data
 
-    await tb.axi_master.write(addr + 128, test_data)
-    data = await tb.axi_master.read(addr + 128, length)
+    #####
+    # check highest valid addr
+    #####
+
+    test = 4*1024-4 # highest address that is still valid for 4byte read
+    await tb.axi_master.write(addr + test, test_data)
+    data = await tb.axi_master.read(addr + test, length)
 
     tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
     tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
-  
+    assert(dut.axi_io_pmp0.pmp0.allow_o.value == 1)
+    assert(dut.axi_io_pmp0.pmp1.allow_o.value == 1)
+
+
+    #####
+    # check lowest invalid addr
+    #####
+
+    test = 4 * 1024
+    await tb.axi_master.write(addr + test, test_data)
+    data = await tb.axi_master.read(addr + test, length)
+
+    assert(dut.axi_io_pmp0.pmp0.allow_o.value == 0)
+    assert(dut.axi_io_pmp0.pmp1.allow_o.value == 0)
+
 
 if cocotb.SIM_NAME:
 
