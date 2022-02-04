@@ -58,13 +58,15 @@ module axi_io_pmp #(
      */
     io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
     io_pmp_reg_pkg::io_pmp_hw2reg_t io_pmp_hw2reg;
+    reg_rsp_t cfg_rsp_mod;
+
+
 
     /*
      * RISC-V Privilege Specs: 
      *  - "When G ≥ 2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits pmpaddri[G-2:0] read as all ones."
      *  - "When G ≥ 1 and pmpcfgi.A[1] is clear, i.e. the mode is OFF or TOR, then bits pmpaddri[G-1:0] read as all zeros."
      */
-    reg_rsp_t cfg_rsp_mod;
     always_comb begin
 
         // default pass through
@@ -93,7 +95,6 @@ module axi_io_pmp #(
     end
 
 
-
     io_pmp_reg_top #(
         .AW       ( $bits(cfg_req_i.addr) ),
         .reg_req_t( reg_req_t             ),
@@ -116,7 +117,7 @@ module axi_io_pmp #(
      * Read channel PMP
      */
     logic [PLEN-1:0] pmp_addr_r;
-    logic pmp_allow_r;
+    logic pmp_allow_r, allow_r;
 
     // extract relevant address to check TODO: bursts are not fully checked yet!
     always_comb begin
@@ -127,12 +128,44 @@ module axi_io_pmp #(
         endcase
     end
 
+    // check boundaries and assemble allow signal
+    // TODO: for now, we expect granularity of 4K i.e. we can do the PMP check in one cycle for the whole burst and only have to check if the AXI 4k boundary constraint has been followed. Later, we can multi-cycle check and allow smaller granularity levels
+    always_comb begin
+
+        // reject by default
+        allow_r = 1'b0;
+
+        case (slv_req_i.ar.burst)
+            axi_pkg::BURST_FIXED: begin
+                // reading from same location: simply check that base_addr + burst_size does not cross the 4K boundary
+                if((slv_req_i.ar.addr >> 12) + slv_req_i.ar.size  < (1'b1 << 12)) begin
+                    allow_r = pmp_allow_r;
+                end else begin // boundary violation
+                    allow_r = 1'b0;
+                end
+
+            end
+            axi_pkg::BURST_WRAP: begin
+                // TODO: not sure how to handle this yet -> we aim for security, therefore block these for now
+                allow_r = 1'b0;
+            end
+            axi_pkg::BURST_INCR: begin
+                // check if burst is within 4K range
+                if((slv_req_i.ar.addr >> 12) + (slv_req_i.ar.size*slv_req_i.ar.len) < (1'b1 << 12)) begin
+                    allow_r = pmp_allow_r;
+                end else begin // boundary violation
+                    allow_r = 1'b0;
+                end
+            end
+        endcase
+    end
+
     // address check
     pmp #(
-        .PLEN      ( PLEN       ),
-        .PMP_LEN   ( PMP_LEN    ),
-        .NR_ENTRIES( NR_ENTRIES ),
-        .PMPGranularity(PMPGranularity)
+        .PLEN          ( PLEN           ),
+        .PMP_LEN       ( PMP_LEN        ),
+        .NR_ENTRIES    ( NR_ENTRIES     ),
+        .PMPGranularity( PMPGranularity )
     ) pmp0 (
         // input
         .addr_i       ( pmp_addr_r             ), // [PLEN-1:0], TODO: check if we slice the right bits
@@ -149,9 +182,9 @@ module axi_io_pmp #(
      * Write channel PMP
      */
     logic [PLEN-1:0] pmp_addr_w;
-    logic pmp_allow_w;
+    logic pmp_allow_w, allow_w;
 
-    // extract relevant address to check: TODO: bursts are not fully checked yet!
+    // extract relevant address to check
     always_comb begin
         case (slv_req_i.aw.burst)
             axi_pkg::BURST_FIXED, axi_pkg::BURST_INCR, axi_pkg::BURST_WRAP: begin
@@ -160,12 +193,44 @@ module axi_io_pmp #(
         endcase
     end
 
+    // check boundaries and assemble allow signal
+    // TODO: for now, we expect granularity of 4K i.e. we can do the PMP check in one cycle for the whole burst and only have to check if the AXI 4k boundary constraint has been followed. Later, we can multi-cycle check and allow smaller granularity levels
+    always_comb begin
+
+        // reject by default
+        allow_w = 1'b0;
+
+        case (slv_req_i.aw.burst)
+            axi_pkg::BURST_FIXED: begin
+                // writing to same location: simply check that base_addr + burst_size does not cross the 4K boundary
+                if((slv_req_i.aw.addr >> 12) + slv_req_i.aw.size  < (1'b1 << 12)) begin
+                    allow_w = pmp_allow_w;
+                end else begin // boundary violation
+                    allow_w = 1'b0;
+                end
+
+            end
+            axi_pkg::BURST_WRAP: begin
+                // TODO: not sure how to handle this yet -> we aim for security, therefore block these for now
+                allow_w = 1'b0;
+            end
+            axi_pkg::BURST_INCR: begin
+                // check if burst is within 4K range
+                if((slv_req_i.aw.addr >> 12) + (slv_req_i.aw.size*slv_req_i.aw.len) < (1'b1 << 12)) begin
+                    allow_w = pmp_allow_w;
+                end else begin // boundary violation
+                    allow_w = 1'b0;
+                end
+            end
+        endcase
+    end
+
     // address check
     pmp #(
-        .PLEN      ( PLEN       ),
-        .PMP_LEN   ( PMP_LEN    ),
-        .NR_ENTRIES( NR_ENTRIES ),
-        .PMPGranularity(PMPGranularity)
+        .PLEN          ( PLEN           ),
+        .PMP_LEN       ( PMP_LEN        ),
+        .NR_ENTRIES    ( NR_ENTRIES     ),
+        .PMPGranularity( PMPGranularity )
     ) pmp1 (
         // input
         .addr_i       ( pmp_addr_w             ), // [PLEN-1:0], TODO: check if we slice the right bits
@@ -206,8 +271,8 @@ module axi_io_pmp #(
         .clk_i          ( clk_i                    ),
         .rst_ni         ( rst_ni                   ),
         .test_i         ( 1'b0                     ),
-        .slv_aw_select_i( pmp_allow_w              ),
-        .slv_ar_select_i( pmp_allow_r              ),
+        .slv_aw_select_i( allow_w                  ),
+        .slv_ar_select_i( allow_r                  ),
         .slv_req_i      ( slv_req_i                ),
         .slv_resp_o     ( slv_rsp_o                ),
         .mst_reqs_o     ( { mst_req_o, error_req } ), // { 1: mst, 0: error }
