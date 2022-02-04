@@ -17,7 +17,9 @@
 module pmp #(
     parameter int unsigned PLEN = 34,       // rv64: 56
     parameter int unsigned PMP_LEN = 32,    // rv64: 54
-    parameter int unsigned NR_ENTRIES = 4
+    parameter int unsigned NR_ENTRIES = 4,
+    // 0 = 4bytes NA4 / 8bytes NAPOT (default), 1 = 16 byte NAPOT, 2 = 32 byte NAPOT, 3 = 64 byte NAPOT, etc.
+    parameter int unsigned PMPGranularity = 0
 ) (
     // Input
     input logic [PLEN-1:0] addr_i,
@@ -39,14 +41,15 @@ module pmp #(
             assign conf_addr_prev = (i == 0) ? '0 : conf_addr_i[i-1];
 
             pmp_entry #(
-                .PLEN    ( PLEN    ),
-                .PMP_LEN ( PMP_LEN )
+                .PLEN          ( PLEN           ),
+                .PMP_LEN       ( PMP_LEN        ),
+                .PMPGranularity( PMPGranularity )
             ) i_pmp_entry(
-                .addr_i           ( addr_i                         ),
-                .conf_addr_i      ( conf_addr_i[i]                 ),
-                .conf_addr_prev_i ( conf_addr_prev                 ),
-                .conf_addr_mode_i ( conf_i[i].addr_mode            ),
-                .match_o          ( match[i]                       )
+                .addr_i           ( addr_i              ),
+                .conf_addr_i      ( conf_addr_i[i]      ),
+                .conf_addr_prev_i ( conf_addr_prev      ),
+                .conf_addr_mode_i ( conf_i[i].addr_mode ),
+                .match_o          ( match[i]            )
             );
         end
 
