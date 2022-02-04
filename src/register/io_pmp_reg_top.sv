@@ -18,6 +18,7 @@ module io_pmp_reg_top #(
   output reg_rsp_t reg_rsp_o,
   // To HW
   output io_pmp_reg_pkg::io_pmp_reg2hw_t reg2hw, // Write
+  input  io_pmp_reg_pkg::io_pmp_hw2reg_t hw2reg, // Read
 
 
   // Config
@@ -182,8 +183,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_0_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[0].de),
+    .d      (hw2reg.pmp_addr[0].d ),
 
     // to internal hardware
     .qe     (),
@@ -209,8 +210,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_1_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[1].de),
+    .d      (hw2reg.pmp_addr[1].d ),
 
     // to internal hardware
     .qe     (),
@@ -236,8 +237,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_2_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[2].de),
+    .d      (hw2reg.pmp_addr[2].d ),
 
     // to internal hardware
     .qe     (),
@@ -263,8 +264,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_3_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[3].de),
+    .d      (hw2reg.pmp_addr[3].d ),
 
     // to internal hardware
     .qe     (),
@@ -290,8 +291,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_4_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[4].de),
+    .d      (hw2reg.pmp_addr[4].d ),
 
     // to internal hardware
     .qe     (),
@@ -317,8 +318,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_5_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[5].de),
+    .d      (hw2reg.pmp_addr[5].d ),
 
     // to internal hardware
     .qe     (),
@@ -344,8 +345,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_6_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[6].de),
+    .d      (hw2reg.pmp_addr[6].d ),
 
     // to internal hardware
     .qe     (),
@@ -371,8 +372,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_7_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[7].de),
+    .d      (hw2reg.pmp_addr[7].d ),
 
     // to internal hardware
     .qe     (),
@@ -398,8 +399,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_8_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[8].de),
+    .d      (hw2reg.pmp_addr[8].d ),
 
     // to internal hardware
     .qe     (),
@@ -425,8 +426,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_9_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[9].de),
+    .d      (hw2reg.pmp_addr[9].d ),
 
     // to internal hardware
     .qe     (),
@@ -452,8 +453,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_10_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[10].de),
+    .d      (hw2reg.pmp_addr[10].d ),
 
     // to internal hardware
     .qe     (),
@@ -479,8 +480,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_11_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[11].de),
+    .d      (hw2reg.pmp_addr[11].d ),
 
     // to internal hardware
     .qe     (),
@@ -506,8 +507,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_12_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[12].de),
+    .d      (hw2reg.pmp_addr[12].d ),
 
     // to internal hardware
     .qe     (),
@@ -533,8 +534,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_13_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[13].de),
+    .d      (hw2reg.pmp_addr[13].d ),
 
     // to internal hardware
     .qe     (),
@@ -560,8 +561,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_14_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[14].de),
+    .d      (hw2reg.pmp_addr[14].d ),
 
     // to internal hardware
     .qe     (),
@@ -587,8 +588,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_addr_15_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_addr[15].de),
+    .d      (hw2reg.pmp_addr[15].d ),
 
     // to internal hardware
     .qe     (),
@@ -617,8 +618,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_0_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[0].de),
+    .d      (hw2reg.pmp_cfg[0].d ),
 
     // to internal hardware
     .qe     (),
@@ -643,8 +644,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_1_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[1].de),
+    .d      (hw2reg.pmp_cfg[1].d ),
 
     // to internal hardware
     .qe     (),
@@ -669,8 +670,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_2_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[2].de),
+    .d      (hw2reg.pmp_cfg[2].d ),
 
     // to internal hardware
     .qe     (),
@@ -695,8 +696,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_3_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[3].de),
+    .d      (hw2reg.pmp_cfg[3].d ),
 
     // to internal hardware
     .qe     (),
@@ -721,8 +722,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_4_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[4].de),
+    .d      (hw2reg.pmp_cfg[4].d ),
 
     // to internal hardware
     .qe     (),
@@ -747,8 +748,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_5_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[5].de),
+    .d      (hw2reg.pmp_cfg[5].d ),
 
     // to internal hardware
     .qe     (),
@@ -773,8 +774,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_6_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[6].de),
+    .d      (hw2reg.pmp_cfg[6].d ),
 
     // to internal hardware
     .qe     (),
@@ -799,8 +800,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_0_pmp_cfg_7_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[7].de),
+    .d      (hw2reg.pmp_cfg[7].d ),
 
     // to internal hardware
     .qe     (),
@@ -828,8 +829,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_8_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[8].de),
+    .d      (hw2reg.pmp_cfg[8].d ),
 
     // to internal hardware
     .qe     (),
@@ -854,8 +855,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_9_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[9].de),
+    .d      (hw2reg.pmp_cfg[9].d ),
 
     // to internal hardware
     .qe     (),
@@ -880,8 +881,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_10_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[10].de),
+    .d      (hw2reg.pmp_cfg[10].d ),
 
     // to internal hardware
     .qe     (),
@@ -906,8 +907,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_11_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[11].de),
+    .d      (hw2reg.pmp_cfg[11].d ),
 
     // to internal hardware
     .qe     (),
@@ -932,8 +933,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_12_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[12].de),
+    .d      (hw2reg.pmp_cfg[12].d ),
 
     // to internal hardware
     .qe     (),
@@ -958,8 +959,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_13_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[13].de),
+    .d      (hw2reg.pmp_cfg[13].d ),
 
     // to internal hardware
     .qe     (),
@@ -984,8 +985,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_14_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[14].de),
+    .d      (hw2reg.pmp_cfg[14].d ),
 
     // to internal hardware
     .qe     (),
@@ -1010,8 +1011,8 @@ module io_pmp_reg_top #(
     .wd     (pmp_cfg_1_pmp_cfg_15_wd),
 
     // from internal hardware
-    .de     (1'b0),
-    .d      ('0  ),
+    .de     (hw2reg.pmp_cfg[15].de),
+    .d      (hw2reg.pmp_cfg[15].d ),
 
     // to internal hardware
     .qe     (),
