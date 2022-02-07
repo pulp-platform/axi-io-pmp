@@ -14,7 +14,7 @@
             count: "16",
             cname: "PMP",
             swaccess: "rw",
-            hwaccess: "hrw",
+            hwaccess: "hro",
             fields: [{
                 bits: "53:0",
                 name: "PMP_ADDR",
@@ -29,7 +29,7 @@
             count: "16",
             cname: "PMP",
             swaccess: "rw",
-            hwaccess: "hrw",
+            hwaccess: "hro",
             fields: [{
                 bits: "7:0",
                 name: "PMP_CFG",

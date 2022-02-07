@@ -21,27 +21,11 @@ package io_pmp_reg_pkg;
     logic [7:0]  q;
   } io_pmp_reg2hw_pmp_cfg_mreg_t;
 
-  typedef struct packed {
-    logic [53:0] d;
-    logic        de;
-  } io_pmp_hw2reg_pmp_addr_mreg_t;
-
-  typedef struct packed {
-    logic [7:0]  d;
-    logic        de;
-  } io_pmp_hw2reg_pmp_cfg_mreg_t;
-
   // Register -> HW type
   typedef struct packed {
     io_pmp_reg2hw_pmp_addr_mreg_t [15:0] pmp_addr; // [991:128]
     io_pmp_reg2hw_pmp_cfg_mreg_t [15:0] pmp_cfg; // [127:0]
   } io_pmp_reg2hw_t;
-
-  // HW -> register type
-  typedef struct packed {
-    io_pmp_hw2reg_pmp_addr_mreg_t [15:0] pmp_addr; // [1023:144]
-    io_pmp_hw2reg_pmp_cfg_mreg_t [15:0] pmp_cfg; // [143:0]
-  } io_pmp_hw2reg_t;
 
   // Register offsets
   parameter logic [BlockAw-1:0] IO_PMP_PMP_ADDR_0_OFFSET = 8'h 0;
