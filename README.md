@@ -1,4 +1,3 @@
-[![AXI IO-PMP Tests](https://github.com/andreaskuster/axi-io-pmp/actions/workflows/main.yml/badge.svg)](https://github.com/andreaskuster/axi-io-pmp/actions/workflows/main.yml)
 [![SHL-0.51 license](https://img.shields.io/badge/license-SHL--0.51-green)](LICENSE)
 
 # RISC-V AXI IO-PMP 
