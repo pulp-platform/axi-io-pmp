@@ -22,7 +22,6 @@ from bitarray.util import int2ba, ba2int
 class TB:
 
     def __init__(self, dut):
-
         self.dut = dut
 
         self.log = logging.getLogger("cocotb.tb")
@@ -64,6 +63,7 @@ class PMPAccess(Enum):
     ACCESS_WRITE = bitarray("010")
     ACCESS_EXEC = bitarray("100")
 
+
 def get_addr_offset():
     # extract address offset from auto-generated pmp header
     file = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'src/register/io_pmp.h'))
@@ -83,7 +83,6 @@ def get_addr_offset():
 
 
 async def set_pmp_napot(tb, base: int, range: int, access: bitarray, pmp_no: int, PMP_LEN=54):
-
     # read base addresses (addr & cfg from header)
     params = get_addr_offset()
 
@@ -99,10 +98,11 @@ async def set_pmp_napot(tb, base: int, range: int, access: bitarray, pmp_no: int
     tb.log.info("PMP NAPOT addr: %s", int2ba(napot_addr, PMP_LEN).to01())
 
     # write config
-    pmp0_addr = params["IO_PMP_PMP_ADDR_0_REG_OFFSET"] + 8*pmp_no
+    pmp0_addr = params["IO_PMP_PMP_ADDR_0_REG_OFFSET"] + 8 * pmp_no
     res = await tb.axi_pmp_cfg.read(pmp0_addr + 8, 8)
-    pmp_next = int.from_bytes(res.data, byteorder="little")  # workaround: we can only write  >= 16bytes (axi_to_reg issue), therefore we read address above first, and write back both
-    await tb.axi_pmp_cfg.write(pmp0_addr, (napot_addr + (pmp_next * (2**64))).to_bytes(16, byteorder='little'))
+    pmp_next = int.from_bytes(res.data,
+                              byteorder="little")  # workaround: we can only write  >= 16bytes (axi_to_reg issue), therefore we read address above first, and write back both
+    await tb.axi_pmp_cfg.write(pmp0_addr, (napot_addr + (pmp_next * (2 ** 64))).to_bytes(16, byteorder='little'))
 
     pmp0_cfg = params["IO_PMP_PMP_CFG_0_REG_OFFSET"]
     res = await tb.axi_pmp_cfg.read(pmp0_cfg, 16)
@@ -112,7 +112,7 @@ async def set_pmp_napot(tb, base: int, range: int, access: bitarray, pmp_no: int
     pmp_cfg_data = pmp_cfg_data & (0xf << (8 * pmp_no))
 
     # insert new value
-    pmp_cfg_data = pmp_cfg_data | (ba2int(conf) << (8 * pmp_no) )
+    pmp_cfg_data = pmp_cfg_data | (ba2int(conf) << (8 * pmp_no))
 
     # send back
     await tb.axi_pmp_cfg.write(pmp0_cfg, (pmp_cfg_data).to_bytes(16, byteorder='little'))
@@ -138,8 +138,29 @@ async def run_test(dut):
     # setup pmp entry
     ###################
 
+    # extract granularity according to RISC-V privileged specs
+    #
+    locked = bitarray("0")
+    reserved = bitarray("00")
+    mode = PMPMode.OFF.value
+    access = PMPAccess.ACCESS_NONE.value
+    conf: bitarray = locked + reserved + mode + access
+
+    await tb.axi_pmp_cfg.write(16*8, ba2int(conf).to_bytes(16, byteorder="little"))
+    await tb.axi_pmp_cfg.write(0, ((2**128) -1).to_bytes(16, byteorder="little"))
+
+    res = await tb.axi_pmp_cfg.read(0, 8)
+    
+    g = 0
+    while(int.from_bytes(res.data, byteorder="little") & (0x1 << g) == 0):
+        g = g + 1
+    g = g + 2
+    tb.log.info(f"RETURN VALUE FOR GRANULARITY: {g}")
+
+
+  
     # configuration
-    pmp_range_len = 8 #2**12
+    pmp_range_len = 8  # 2**12
     await set_pmp_napot(tb, 0, pmp_range_len, PMPAccess.ACCESS_READ.value | PMPAccess.ACCESS_WRITE.value, 0)
 
     ##########################
@@ -157,40 +178,37 @@ async def run_test(dut):
     #####
     # check highest valid addr
     #####
-    test = 4*1024-4 # highest address that is still valid for 4byte read
+    test = 4 * 1024 - 4  # highest address that is still valid for 4byte read
     await tb.axi_master.write(addr + test, test_data)
     data = await tb.axi_master.read(addr + test, length)
 
     tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
     tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
-    assert(dut.axi_io_pmp0.pmp0.allow_o.value == 1)
-    assert(dut.axi_io_pmp0.pmp1.allow_o.value == 1)
-
+    assert (dut.axi_io_pmp0.pmp0.allow_o.value == 1)
+    assert (dut.axi_io_pmp0.pmp1.allow_o.value == 1)
 
     #####
     # check lowest invalid addr
     #####
-    test = 4*1024 # lowest address that is out of PMP region
+    test = 4 * 1024  # lowest address that is out of PMP region
     await tb.axi_master.write(addr + test, test_data)
     data = await tb.axi_master.read(addr + test, length)
 
     tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
     tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
-    assert(dut.axi_io_pmp0.pmp0.allow_o.value == 0)
-    assert(dut.axi_io_pmp0.pmp1.allow_o.value == 0)
-
+    assert (dut.axi_io_pmp0.pmp0.allow_o.value == 0)
+    assert (dut.axi_io_pmp0.pmp1.allow_o.value == 0)
 
     #####
     # check boundary crossing
     #####
-    test = 4 * 1024-8
+    test = 4 * 1024 - 8
     await tb.axi_master.write(addr + test, (42).to_bytes(16, byteorder="little"))
     data = await tb.axi_master.read(addr + test, 16)
 
-    assert(data.data != 42)
-
+    assert (data.data != 42)
 
 
 if cocotb.SIM_NAME:
@@ -210,7 +228,6 @@ if cocotb.SIM_NAME:
 @pytest.mark.parametrize("addr_width", [64])  # [32, 64]
 @pytest.mark.parametrize("simulator", ["questa"])  # ["verilator", "questa"]
 def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
-
     # activate for remote debugging
     if "REMOTE" in os.environ:
         import pydevd_pycharm
@@ -312,7 +329,8 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
             module=module
         )
         # suppress some verilator specific warnings (i.e. missing timescale information, ..)
-        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD", "-Wno-CASEINCOMPLETE", "-Wno-WIDTH", "-Wno-SELRANGE", "-Wno-CMPCONST", "-Wno-UNSIGNED"]
+        sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD", "-Wno-CASEINCOMPLETE", "-Wno-WIDTH", "-Wno-SELRANGE",
+                             "-Wno-CMPCONST", "-Wno-UNSIGNED"]
 
     elif simulator == "questa":
         sim = cocotb_test.simulator.Questa(
@@ -320,14 +338,15 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
             module=module
         )
 
-        sim.compile_args += ["+define+TARGET_VSIM"] # activate axi_demux workaround
+        sim.compile_args += ["+define+TARGET_VSIM"]  # activate axi_demux workaround
 
-        #sim.gui = True
+        # sim.gui = True
 
         # add coverage to questa
         sim.compile_args += ["+cover bcs"]
         coverage_file = "axi_io_pmp"
-        sim.simulation_args += ["-coverage -coveranalysis -cvgperinstance", f'-do "coverage save -codeAll -cvg -onexit {coverage_file}.ucdb;"']
+        sim.simulation_args += ["-coverage -coveranalysis -cvgperinstance",
+                                f'-do "coverage save -codeAll -cvg -onexit {coverage_file}.ucdb;"']
 
     else:
         sim = cocotb_test.simulator.Simulator(
