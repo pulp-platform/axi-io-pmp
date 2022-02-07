@@ -36,6 +36,18 @@
                 desc: "Single PMP config entry: { [7]locked, [6:5]reserved, [4:3]addr_mode, [2:0]access_type }",
                 resval: "0"
             }]
-        }
-    }]
+        }}
+        #,
+        #{
+        #    name: "PMP_GRANULARITY",
+        #    desc: "PMP granularity",
+        #    swaccess: "rw",
+        #    hwaccess: "hro",
+        #    fields: [{
+        #        bits: "53:0"
+        #        name: "PMP_GRANULARITY"
+        #        desc: "Granularity of PMP"
+        #    }]
+        #}
+    ]
 }
