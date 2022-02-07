@@ -69,7 +69,11 @@ module pmp_entry #(
                         size = 2;
                     end else begin
                         // use the extracted trailing ones
-                        size = trail_ones + 3 + PMPGranularity;
+                        if(PMPGranularity == 0) begin
+                            size = trail_ones + 3;
+                        end else begin // the before NA4 case i.e. Granularity+2 must be available as NAPOT range for G>0
+                            size = trail_ones + 3 + (PMPGranularity -1);
+                        end
                     end
 
                     mask = '1 << size;
