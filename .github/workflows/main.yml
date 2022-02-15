@@ -1,11 +1,23 @@
 name: AXI IO-PMP Tests
-on: [] # [push, pull_request]
+on: [push, pull_request]
 jobs:
-  tests:
-    name: Test
+  format:
+    name: Clang-Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: |
-          source setup_env.sh
-          pytest tb/
+      - name: install
+        run: sudo apt-get install -y clang-format
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: format
+        run: ./extras/format.sh
+      - name: diff
+        run: git diff --exit-code
+  # tests:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: |
+  #         source setup_env.sh
+  #         pytest tb/
