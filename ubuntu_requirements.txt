@@ -3,3 +3,4 @@ iverilog
 verilator-4.106
 graphviz
 gtkwave
+clang-format
