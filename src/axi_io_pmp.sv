@@ -61,15 +61,15 @@ module axi_io_pmp #(
     output reg_rsp_t cfg_rsp_o
 );
 
-  /*
-     * Device configuration and status registers
-     */
+  //
+  // Device configuration and status registers
+  //
   io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
   reg_req_t cfg_req_mod;
   reg_rsp_t cfg_rsp_mod;
 
   /*
-     * RISC-V Privilege Specs: 
+     * RISC-V Privilege Specs:
      *  - "When G ≥ 2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits pmpaddri[G-2:0] read as all ones."
      *  - "When G ≥ 1 and pmpcfgi.A[1] is clear, i.e. the mode is OFF or TOR, then bits pmpaddri[G-1:0] read as all zeros."
      */
@@ -111,7 +111,7 @@ module axi_io_pmp #(
   end
 
   io_pmp_reg_top #(
-      .AW       (ADDR_WIDTH),
+      //.AW       (ADDR_WIDTH),
       .reg_req_t(reg_req_t),
       .reg_rsp_t(reg_rsp_t)
   ) io_pmp_reg_top0 (
@@ -319,12 +319,12 @@ module axi_io_pmp #(
       .slv_req_i      (slv_req_i),
       .slv_resp_o     (slv_rsp_o),
       .mst_reqs_o     ({mst_req_o, error_req}),  // { 1: mst, 0: error }
-      .mst_resps_i    ({mst_rsp_i, error_rsp})
+      .mst_resps_i    ({mst_rsp_i, error_rsp})   // { 1: mst, 0: error }
   );
 
-  /*
-     * Respond to unauthorized transactions with slave errors
-     */
+  //
+  // Respond to unauthorized transactions with slave errors
+  //
   axi_err_slv #(
       .AxiIdWidth(ID_WIDTH),
       .req_t(axi_req_t),
