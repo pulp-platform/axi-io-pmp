@@ -44,7 +44,7 @@ module axi_io_pmp #(
     parameter int unsigned PMPGranularity = 10,                // 4K
     // AXI parameters
     // maximum number of AXI bursts outstanding at the same time
-    parameter int unsigned MaxTxns        = 32'd1
+    parameter int unsigned MaxTxns        = 32'd4
 ) (
     // rising-edge clock 
     input  logic     clk_i,
@@ -61,6 +61,7 @@ module axi_io_pmp #(
     output reg_rsp_t cfg_rsp_o
 );
 
+
   //
   // Device configuration and status registers
   //
@@ -68,11 +69,12 @@ module axi_io_pmp #(
   reg_req_t cfg_req_mod;
   reg_rsp_t cfg_rsp_mod;
 
-  /*
-     * RISC-V Privilege Specs:
-     *  - "When G ≥ 2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits pmpaddri[G-2:0] read as all ones."
-     *  - "When G ≥ 1 and pmpcfgi.A[1] is clear, i.e. the mode is OFF or TOR, then bits pmpaddri[G-1:0] read as all zeros."
-     */
+
+  //
+  // RISC-V Privilege Specs:
+  //  - "When G ≥ 2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits pmpaddri[G-2:0] read as all ones."
+  //  - "When G ≥ 1 and pmpcfgi.A[1] is clear, i.e. the mode is OFF or TOR, then bits pmpaddri[G-1:0] read as all zeros."
+  //
   always_comb begin
 
     // read: default pass through
@@ -105,13 +107,12 @@ module axi_io_pmp #(
       end else begin  // write access
 
         // enforce granularity
-        cfg_req_mod.wdata[PMPGranularity-1:0] = {(PMPGranularity) {1'b0}};
+        //cfg_req_mod.wdata[PMPGranularity-1:0] = {(PMPGranularity) {1'b0}};
       end
     end
   end
 
   io_pmp_reg_top #(
-      //.AW       (ADDR_WIDTH),
       .reg_req_t(reg_req_t),
       .reg_rsp_t(reg_rsp_t)
   ) io_pmp_reg_top0 (
@@ -126,9 +127,9 @@ module axi_io_pmp #(
   );
 
 
-  /*
-     * Read channel PMP
-     */
+  //
+  // Read channel PMP
+  //
   logic [PLEN-1:0] pmp_addr_r;
   logic pmp_allow_r, allow_r;
 
@@ -143,7 +144,7 @@ module axi_io_pmp #(
     case (slv_req_i.ar.burst)
       axi_pkg::BURST_FIXED: begin
         // reading from same location: simply check that base_addr + burst_size does not cross the 4K boundary
-        if ((slv_req_i.ar.addr >> 12) + (1'b1 << slv_req_i.ar.size) < (1'b1 << 12)) begin
+        if ((slv_req_i.ar.addr & 12'hfff) + (1'b1 << slv_req_i.ar.size) < (1'b1 << 12)) begin
           allow_r = pmp_allow_r;
         end else begin  // boundary violation
           allow_r = 1'b0;
@@ -170,7 +171,7 @@ module axi_io_pmp #(
 
         pmp_addr_r = wrap_boundary; // BURST_WRAP has to check from the wrap_boundary aka lower bound address
 
-        if(log2_len != 3'b111 && (wrap_boundary >> 12) + (slv_req_i.ar.len << slv_req_i.ar.size) < (1'b1 << 12) ) begin
+        if(log2_len != 3'b111 && (wrap_boundary & 12'hfff) + (slv_req_i.ar.len << slv_req_i.ar.size) < (1'b1 << 12) ) begin
           allow_r = pmp_allow_r;
         end else begin
           allow_r = 1'b0;
@@ -179,7 +180,7 @@ module axi_io_pmp #(
       end
       axi_pkg::BURST_INCR: begin
         // check if burst is within 4K range
-        if((slv_req_i.ar.addr >> 12) + (slv_req_i.ar.len << slv_req_i.ar.size) < (1'b1 << 12)) begin
+        if((slv_req_i.ar.addr & 12'hfff) + (slv_req_i.ar.len << slv_req_i.ar.size) < (1'b1 << 12)) begin
           allow_r = pmp_allow_r;
         end else begin  // boundary violation
           allow_r = 1'b0;
@@ -206,9 +207,9 @@ module axi_io_pmp #(
       .allow_o      (pmp_allow_r)
   );
 
-  /*
-     * Write channel PMP
-     */
+  //
+  // Write channel PMP
+  //
   logic [PLEN-1:0] pmp_addr_w;
   logic pmp_allow_w, allow_w;
 
@@ -223,7 +224,7 @@ module axi_io_pmp #(
     case (slv_req_i.aw.burst)
       axi_pkg::BURST_FIXED: begin
         // writing to same location: simply check that base_addr + burst_size does not cross the 4K boundary
-        if ((slv_req_i.aw.addr >> 12) + (1'b1 << slv_req_i.aw.size) < (1'b1 << 12)) begin
+        if ((slv_req_i.aw.addr & 12'hfff) + (1'b1 << slv_req_i.aw.size) < (1'b1 << 12)) begin
           allow_w = pmp_allow_w;
         end else begin  // boundary violation
           allow_w = 1'b0;
@@ -251,7 +252,7 @@ module axi_io_pmp #(
 
         pmp_addr_w = wrap_boundary; // BURST_WRAP has to check from the wrap_boundary aka lower bound address
 
-        if(log2_len != 3'b111 && (wrap_boundary >> 12) + (slv_req_i.aw.len << slv_req_i.aw.size) < (1'b1 << 12) ) begin
+        if(log2_len != 3'b111 && (wrap_boundary & 12'hfff) + (slv_req_i.aw.len << slv_req_i.aw.size) < (1'b1 << 12) ) begin
           allow_w = pmp_allow_w;
         end else begin
           allow_w = 1'b0;
@@ -259,7 +260,7 @@ module axi_io_pmp #(
       end
       axi_pkg::BURST_INCR: begin
         // check if burst is within 4K range
-        if((slv_req_i.aw.addr >> 12) + (slv_req_i.aw.len << slv_req_i.aw.size) < (1'b1 << 12)) begin
+        if((slv_req_i.aw.addr & 12'hfff) + (slv_req_i.aw.len << slv_req_i.aw.size) < (1'b1 << 12)) begin
           allow_w = pmp_allow_w;
         end else begin  // boundary violation
           allow_w = 1'b0;
@@ -287,9 +288,9 @@ module axi_io_pmp #(
   );
 
 
-  /*
-     * Demultiplex between authorized and unauthorized transactions
-     */
+  //
+  // Demultiplex between authorized and unauthorized transactions
+  //
   axi_req_t error_req;
   axi_rsp_t error_rsp;
   axi_demux #(
@@ -321,6 +322,7 @@ module axi_io_pmp #(
       .mst_reqs_o     ({mst_req_o, error_req}),  // { 1: mst, 0: error }
       .mst_resps_i    ({mst_rsp_i, error_rsp})   // { 1: mst, 0: error }
   );
+
 
   //
   // Respond to unauthorized transactions with slave errors
