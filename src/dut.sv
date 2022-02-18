@@ -214,7 +214,8 @@ module dut #(
   /*
      * Master/slave (AXI) and register interface request/response structs
      */
-  `REG_BUS_TYPEDEF_ALL(iopmp_reg, logic[7:0], logic[DATA_WIDTH-1:0], logic[STRB_WIDTH-1:0])  // name, addr_t, data_t, strb_t
+  `REG_BUS_TYPEDEF_ALL(iopmp_reg, logic[7:0], logic[DATA_WIDTH-1:0],
+                       logic[STRB_WIDTH-1:0])  // name, addr_t, data_t, strb_t
   iopmp_reg_req_t cfg_reg_req_o;
   iopmp_reg_rsp_t cfg_reg_rsp_i;
 
