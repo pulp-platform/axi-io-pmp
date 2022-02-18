@@ -13,4 +13,8 @@ export CORE_AREA   = 10.07 11.2 1094.97 1094.8
 #export DIE_AREA    = 0 0 100.13 100.8
 #export CORE_AREA   = 10.07 11.2 90.25 91
 
-#export PLACE_DENSITY = 1.0
+#export CORE_UTILIZATION  = 30
+#export CORE_ASPECT_RATIO = 1
+#export CORE_MARGIN       = 2
+#export PLACE_DENSITY     = 0.70
+
