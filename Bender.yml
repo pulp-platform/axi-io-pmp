@@ -17,7 +17,6 @@ sources:
   ##########
   # packages
   ##########
-  - src/connector/axi_conf.sv
   - src/pmp/include/riscv.sv
   - src/common_cells/src/cf_math_pkg.sv
   - src/axi/src/axi_pkg.sv
