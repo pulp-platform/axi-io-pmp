@@ -306,11 +306,11 @@ module axi_io_pmp #(
       .MaxTrans   (MaxTxns),
       .AxiLookBits(ID_WIDTH),       // TODO: not sure what this is?
       .FallThrough(1'b0),           // TODO: check what the right value is for them
-      .SpillAw    (1'b1),
-      .SpillW     (1'b1),
-      .SpillB     (1'b1),
-      .SpillAr    (1'b1),
-      .SpillR     (1'b1)
+      .SpillAw    (1'b0),
+      .SpillW     (1'b0),
+      .SpillB     (1'b0),
+      .SpillAr    (1'b0),
+      .SpillR     (1'b0)
   ) axi_demux0 (
       .clk_i          (clk_i),
       .rst_ni         (rst_ni),
