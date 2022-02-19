@@ -18,3 +18,4 @@ export CORE_AREA   = 10.07 11.2 1094.97 1094.8
 #export CORE_MARGIN       = 2
 #export PLACE_DENSITY     = 0.70
 
+#export VERILOG_TOP_PARAMS
