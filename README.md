@@ -27,13 +27,15 @@ gtkwave sim_build/axi_io_pmp.vcd
 
 | Name                                                            | Description |
 |-----------------------------------------------------------------|-------------|
-| [`axi_io_pmp`](src/axi_io_pmp.sv)                               |             |
 | [`dut`](src/dut.sv)                                             |             |
-| [`axi_conf`](src/connector/axi_conf.sv)                         |             |
+| [`axi_io_pmp`](src/axi_io_pmp.sv)                               |             |
 | [`axi_master_connector`](src/connector/axi_master_connector.sv) |             |
 | [`axi_slave_connector`](src/connector/axi_slave_connector.sv)   |             |
-| [`riscv`](src/include/riscv.sv)                                 |             |
+| [`riscv`](src/pmp/include/riscv.sv)                             |             |
+| [`pmp_entry`](src/pmp/pmp_entry.sv)                             |             |
 | [`pmp`](src/pmp/pmp.sv)                                         |             |
+| [`io_pmp_reg_pkg`](src/register/io_pmp_reg_pkg.sv)              |             |
+| [`io_pmp_reg_top`](src/register/io_pmp_reg_top.sv)              |             |
 
 
 ### AXI Compliance and PMP Correctness
