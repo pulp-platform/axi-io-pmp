@@ -190,14 +190,14 @@ async def run_test(dut):
     #####
     # check lowest invalid addr
     #####
-    # test = 4 * 1024  # lowest address that is out of PMP region
+    test = 4 * 1024  # lowest address that is out of PMP region
     # await tb.axi_master.write(addr + test, test_data)
-    # data = await tb.axi_master.read(addr + test, length)
+    data = await tb.axi_master.read(addr + test, length)
 
-    # tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
-    # tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
-    # assert (dut.axi_io_pmp0.pmp0.allow_o.value == 0)
+    assert (dut.axi_io_pmp0.pmp0.allow_o.value == 0)
     # assert (dut.axi_io_pmp0.pmp1.allow_o.value == 0)
 
     #####
@@ -207,7 +207,7 @@ async def run_test(dut):
     # await tb.axi_master.write(addr + test, (42).to_bytes(16, byteorder="little"))
     data = await tb.axi_master.read(addr + test, 16)
 
-    # assert (data.data != 42)
+    assert (data.data != 42)
 
 
 if cocotb.SIM_NAME:
@@ -237,7 +237,8 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
     tests_dir = os.path.abspath(os.path.dirname(__file__))
-    src_dir = os.path.abspath(os.path.join(tests_dir, '..', 'src'))
+    root_dir = os.path.abspath(os.path.join(tests_dir, '..'))
+    src_dir = os.path.abspath(os.path.join(root_dir, 'src'))
 
     # verilog source list
     verilog_sources = [
@@ -352,19 +353,31 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
 
     elif simulator == "icarus":
 
+        # convert design from SystemVerilog to Verilog
         import subprocess
-        subprocess.call(["make", "install_sv2v"], cwd="./extras")
-        subprocess.call(["make", "sv2v"], cwd="./extras")
+        subprocess.call(["make", "install_sv2v"], cwd=os.path.join(root_dir, "extras"))
+        subprocess.call(["make", "sv2v"], cwd=os.path.join(root_dir, "extras"))
 
         sim = cocotb_test.simulator.Icarus(
             toplevel=toplevel,
             module=module
         )
-        with open("cmdfile", "w") as f:
-            f.write("+timescale+1ns/10ps")
+        with open(os.path.join(root_dir, "cmdfile"), "w") as f:
+            f.write("+timescale+1ns/1ps")
 
-        sim.compile_args += ["-c cmdfile"]
-        sim.verilog_sources = [ "./extras/iopmp.v"]
+        # replace unsupported $fatal
+        f = open(os.path.join(root_dir, "extras/iopmp.v"), "r")
+        newlines = []
+        for line in f.readlines():
+            newlines.append(line.replace("$fatal", "//$fatal"))
+        f.close()
+        f = open(os.path.join(root_dir, "extras/iopmp.v"), "w")
+        f.writelines(newlines)
+        f.close()
+
+        sim.compile_args += [f'-c{os.path.join(root_dir, "cmdfile")}']
+        sim.verilog_sources = [f'{os.path.join(root_dir, "extras/iopmp.v")}']
+        sim.force_compile = True
 
     else:
         raise NotImplementedError(f"Simulator {simulator} not implemented")
