@@ -13,7 +13,7 @@ jobs:
         run: ./extras/format.sh
       - name: diff
         run: git diff --exit-code
-   tests:
+  tests:
      name: Regression Test
      runs-on: ubuntu-latest
      steps:
