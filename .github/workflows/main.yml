@@ -13,11 +13,11 @@ jobs:
         run: ./extras/format.sh
       - name: diff
         run: git diff --exit-code
-  # tests:
-  #   name: Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - run: |
-  #         source setup_env.sh
-  #         pytest tb/
+   tests:
+     name: Regression Test
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v2
+       - run: |
+           source setup_env.sh
+           pytest tb/
