@@ -66,8 +66,49 @@ module axi_io_pmp #(
   // Device configuration and status registers
   //
   io_pmp_reg_pkg::io_pmp_reg2hw_t io_pmp_reg2hw;
-  reg_req_t cfg_req_mod;
-  reg_rsp_t cfg_rsp_mod;
+  reg_req_t cfg_req_mod, cfg_req_mod_reg;
+  reg_rsp_t cfg_rsp_mod, cfg_rsp_mod_reg;
+
+
+  // buffer the reg signal  
+  typedef struct packed {
+    logic [$bits(cfg_req_mod.addr)-1:0]  addr;
+    logic [$bits(cfg_req_mod.write)-1:0] write;
+    logic [$bits(cfg_req_mod.wdata)-1:0] wdata;
+    logic [$bits(cfg_req_mod.wstrb)-1:0] wstrb;
+    logic [$bits(cfg_rsp_mod.rdata)-1:0] rdata;
+    logic [$bits(cfg_rsp_mod.error)-1:0] error;
+  } reg_intf_data_t;
+
+  spill_register #(
+      .T(reg_intf_data_t),
+      .Bypass(1'b0)
+  ) spill_register0 (
+      .clk_i (clk_i),
+      .rst_ni(rst_ni),
+
+      .valid_i(cfg_req_mod.valid),
+      .ready_o(cfg_rsp_mod.ready),
+      .data_i({
+        cfg_req_mod.addr,
+        cfg_req_mod.write,
+        cfg_req_mod.wdata,
+        cfg_req_mod.wstrb,
+        cfg_rsp_mod_reg.rdata,
+        cfg_rsp_mod_reg.error
+      }),
+
+      .valid_o(cfg_req_mod_reg.valid),
+      .ready_i(cfg_rsp_mod_reg.ready),
+      .data_o({
+        cfg_req_mod_reg.addr,
+        cfg_req_mod_reg.write,
+        cfg_req_mod_reg.wdata,
+        cfg_req_mod_reg.wstrb,
+        cfg_rsp_mod.rdata,
+        cfg_rsp_mod.error
+      })
+  );
 
 
   //
@@ -118,10 +159,10 @@ module axi_io_pmp #(
   ) io_pmp_reg_top0 (
       .clk_i    (clk_i),
       .rst_ni   (rst_ni),
-      .devmode_i(1'b0),          // if 1, explicit error return for unmapped register access
+      .devmode_i(1'b0),             // if 1, explicit error return for unmapped register access
       // register interface
-      .reg_req_i(cfg_req_mod),
-      .reg_rsp_o(cfg_rsp_mod),
+      .reg_req_i(cfg_req_mod_reg),
+      .reg_rsp_o(cfg_rsp_mod_reg),
       // from registers to hardware 
       .reg2hw   (io_pmp_reg2hw)
   );

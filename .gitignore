@@ -9,3 +9,5 @@ sim_build
 tb/results.xml
 # pycache
 *__pycache__*
+# openroad flow
+extras/OpenRoad-flow-scripts/*
