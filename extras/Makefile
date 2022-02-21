@@ -70,6 +70,12 @@ endif
 synth:
 	./synth.sh
 
+synth_gui:
+	cd OpenROAD-flow-scripts/flow/ && make gui_final
+
+flow:
+	install_sv2v install_synth sv2v synth
+
 clean:
 	rm -rf verible*
 	rm iopmp.v

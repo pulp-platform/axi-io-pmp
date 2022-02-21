@@ -3,7 +3,7 @@ current_design iopmp
 set clk_name  core_clock
 set clk_port_name clk
 # clk period in ns
-set clk_period 4.0 
+set clk_period 3.0
 set clk_io_pct 0.2
 
 set clk_port [get_ports $clk_port_name]

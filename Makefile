@@ -42,5 +42,7 @@ bender_gen_src:
 
 clean:
 	rm -rf bender Bender.lock
-	rm -rf sim_build .pytest_cache transcript
+	rm -rf sim_build .pytest_cache transcript tb/sim_build
 	rm -rf covhtmlreport
+	rm -rf cmdfile
+	rm -rf extras/iopmp.v extras/sv2v-Linux.zip
