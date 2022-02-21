@@ -15,6 +15,6 @@ export PATH=./verible-v0.0-1897-gbe7e2250/bin/:$PATH
 
 # format all verilog files
 echo "Format verilog files.."
-find . -type d \( -path ./extras/OpenROAD-flow-scripts -o -path *./extras/verible-v0.0-1897-gbe7e2250 \) -prune -o -name ".svh" -o -name "*.sv" -o -name "*.v" | xargs verible-verilog-format -inplace
+find . -type d \( -path ./extras/OpenROAD-flow-scripts -o -path ./extras/verible-v0.0-1897-gbe7e2250 -o -path ./src/axi -o -path ./src/register_interface -o -path ./src/common_cells \) -prune -o -name ".svh" -o -name "*.sv" -o -name "*.v" | xargs verible-verilog-format -inplace
 
 echo "All done."
