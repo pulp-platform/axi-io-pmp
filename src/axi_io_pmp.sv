@@ -44,7 +44,7 @@ module axi_io_pmp #(
     parameter int unsigned PMPGranularity = 10,                // 4K
     // AXI parameters
     // maximum number of AXI bursts outstanding at the same time
-    parameter int unsigned MaxTxns        = 32'd1
+    parameter int unsigned MaxTxns        = 32'd2
 ) (
     // rising-edge clock 
     input  logic     clk_i,
