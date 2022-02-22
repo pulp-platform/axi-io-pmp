@@ -481,50 +481,46 @@ module dut #(
   );
 
 
-  // buffer the reg signal
+  // buffer the register bus signal
+  iopmp_reg_req_t cfg_reg_buf_req_o;
+  iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
 
-  //   iopmp_reg_req_t cfg_reg_buf_req_o;
-  //   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
+  typedef struct packed {
+    reg_addr_t addr;
+    logic      write;
+    reg_data_t wdata;
+    reg_strb_t wstrb;
+    reg_data_t rdata;
+    logic      error;
+  } reg_handshake_data_t;
 
-  //   typedef struct packed {
-  //     reg_addr_t  addr;
-  //     logic       write;
-  //     reg_data_t  wdata;
-  //     reg_strb_t  wstrb;
-  //     reg_data_t  rdata;
-  //     logic       error;
-  //   } reg_intf_data_t;
-
-  //   spill_register #(
-  //       .T(reg_intf_data_t),
-  //       .Bypass(1'b0)
-  //   ) spill_register0 (
-  //       .clk_i (clk),
-  //       .rst_ni(!rst),
-
-  //       .valid_i(cfg_reg_req_o.valid),
-  //       .ready_o(cfg_reg_rsp_i.ready),
-  //       .data_i({
-  //         cfg_reg_req_o.addr,
-  //         cfg_reg_req_o.write,
-  //         cfg_reg_req_o.wdata,
-  //         cfg_reg_req_o.wstrb,
-  //         cfg_reg_buf_rsp_i.rdata,
-  //         cfg_reg_buf_rsp_i.error
-  //       }),
-
-  //       .valid_o(cfg_reg_buf_req_o.valid),
-  //       .ready_i(cfg_reg_buf_rsp_i.ready),
-  //       .data_o({
-  //         cfg_reg_buf_req_o.addr,
-  //         cfg_reg_buf_req_o.write,
-  //         cfg_reg_buf_req_o.wdata,
-  //         cfg_reg_buf_req_o.wstrb,
-  //         cfg_reg_rsp_i.rdata,
-  //         cfg_reg_rsp_i.error
-  //       })
-  //   );
-
+  spill_register #(
+      .T(reg_handshake_data_t),
+      .Bypass(1'b1)  // TODO: check why it gets stuck when Bypass=0
+  ) spill_register0 (
+      .clk_i(clk),
+      .rst_ni(!rst),
+      .valid_i(cfg_reg_req_o.valid),
+      .ready_o(cfg_reg_rsp_i.ready),
+      .data_i({
+        cfg_reg_req_o.addr,
+        cfg_reg_req_o.write,
+        cfg_reg_req_o.wdata,
+        cfg_reg_req_o.wstrb,
+        cfg_reg_buf_rsp_i.rdata,
+        cfg_reg_buf_rsp_i.error
+      }),
+      .valid_o(cfg_reg_buf_req_o.valid),
+      .ready_i(cfg_reg_buf_rsp_i.ready),
+      .data_o({
+        cfg_reg_buf_req_o.addr,
+        cfg_reg_buf_req_o.write,
+        cfg_reg_buf_req_o.wdata,
+        cfg_reg_buf_req_o.wstrb,
+        cfg_reg_rsp_i.rdata,
+        cfg_reg_rsp_i.error
+      })
+  );
 
   axi_cut #(
       // bypass enable
@@ -569,8 +565,8 @@ module dut #(
       .slv_rsp_o(sq_axi_rsp_i),
       .mst_req_o(m_axi_req_i),
       .mst_rsp_i(m_axi_rsp_o),
-      .cfg_req_i(cfg_reg_req_o),  //cfg_reg_buf_req_o),
-      .cfg_rsp_o(cfg_reg_rsp_i)   //cfg_reg_buf_rsp_i)
+      .cfg_req_i(cfg_reg_buf_req_o),
+      .cfg_rsp_o(cfg_reg_buf_rsp_i)
   );
 
 
