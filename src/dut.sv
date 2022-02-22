@@ -211,13 +211,14 @@ module dut #(
     input  logic                    cfg_axi_rready
 );
 
-   //
-   // Master/slave (AXI) and register interface request/response structs
-   //
-  typedef logic[7:0] reg_addr_t;
-  typedef logic[DATA_WIDTH-1:0] reg_data_t;
-  typedef logic[STRB_WIDTH-1:0] reg_strb_t;
-  `REG_BUS_TYPEDEF_ALL(iopmp_reg, reg_addr_t, reg_data_t, reg_strb_t)  // name, addr_t, data_t, strb_t
+  //
+  // Master/slave (AXI) and register interface request/response structs
+  //
+  typedef logic [7:0] reg_addr_t;
+  typedef logic [DATA_WIDTH-1:0] reg_data_t;
+  typedef logic [STRB_WIDTH-1:0] reg_strb_t;
+  `REG_BUS_TYPEDEF_ALL(iopmp_reg, reg_addr_t, reg_data_t,
+                       reg_strb_t)  // name, addr_t, data_t, strb_t
   iopmp_reg_req_t cfg_reg_req_o;
   iopmp_reg_rsp_t cfg_reg_rsp_i;
 
@@ -451,7 +452,7 @@ module dut #(
       // width of the data
       .DATA_WIDTH(DATA_WIDTH),
       // width of the id.
-      .ID_WIDTH  (ID_WIDTH),
+      .ID_WIDTH(ID_WIDTH),
       // width of the user signal.
       .USER_WIDTH(AWUSER_WIDTH),
       // maximum number of outstanding writes.
@@ -462,13 +463,13 @@ module dut #(
       // can help break long paths at the expense of registers.
       .DECOUPLE_W(1),
       // AXI request struct type
-      .axi_req_t (iopmp_axi_req_t),
+      .axi_req_t(iopmp_axi_req_t),
       // AXI response struct type
-      .axi_rsp_t (iopmp_axi_rsp_t),
+      .axi_rsp_t(iopmp_axi_rsp_t),
       // regbus request struct type
-      .reg_req_t (iopmp_reg_req_t),
+      .reg_req_t(iopmp_reg_req_t),
       // regbus response struct type
-      .reg_rsp_t (iopmp_reg_rsp_t)
+      .reg_rsp_t(iopmp_reg_rsp_t)
   ) axi_to_reg0 (
       .clk_i     (clk),
       .rst_ni    (!rst),
@@ -482,47 +483,47 @@ module dut #(
 
   // buffer the reg signal
 
-//   iopmp_reg_req_t cfg_reg_buf_req_o;
-//   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
+  //   iopmp_reg_req_t cfg_reg_buf_req_o;
+  //   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
 
-//   typedef struct packed {
-//     reg_addr_t  addr;
-//     logic       write;
-//     reg_data_t  wdata;
-//     reg_strb_t  wstrb;
-//     reg_data_t  rdata;
-//     logic       error;
-//   } reg_intf_data_t;
+  //   typedef struct packed {
+  //     reg_addr_t  addr;
+  //     logic       write;
+  //     reg_data_t  wdata;
+  //     reg_strb_t  wstrb;
+  //     reg_data_t  rdata;
+  //     logic       error;
+  //   } reg_intf_data_t;
 
-//   spill_register #(
-//       .T(reg_intf_data_t),
-//       .Bypass(1'b0)
-//   ) spill_register0 (
-//       .clk_i (clk),
-//       .rst_ni(!rst),
+  //   spill_register #(
+  //       .T(reg_intf_data_t),
+  //       .Bypass(1'b0)
+  //   ) spill_register0 (
+  //       .clk_i (clk),
+  //       .rst_ni(!rst),
 
-//       .valid_i(cfg_reg_req_o.valid),
-//       .ready_o(cfg_reg_rsp_i.ready),
-//       .data_i({
-//         cfg_reg_req_o.addr,
-//         cfg_reg_req_o.write,
-//         cfg_reg_req_o.wdata,
-//         cfg_reg_req_o.wstrb,
-//         cfg_reg_buf_rsp_i.rdata,
-//         cfg_reg_buf_rsp_i.error
-//       }),
+  //       .valid_i(cfg_reg_req_o.valid),
+  //       .ready_o(cfg_reg_rsp_i.ready),
+  //       .data_i({
+  //         cfg_reg_req_o.addr,
+  //         cfg_reg_req_o.write,
+  //         cfg_reg_req_o.wdata,
+  //         cfg_reg_req_o.wstrb,
+  //         cfg_reg_buf_rsp_i.rdata,
+  //         cfg_reg_buf_rsp_i.error
+  //       }),
 
-//       .valid_o(cfg_reg_buf_req_o.valid),
-//       .ready_i(cfg_reg_buf_rsp_i.ready),
-//       .data_o({
-//         cfg_reg_buf_req_o.addr,
-//         cfg_reg_buf_req_o.write,
-//         cfg_reg_buf_req_o.wdata,
-//         cfg_reg_buf_req_o.wstrb,
-//         cfg_reg_rsp_i.rdata,
-//         cfg_reg_rsp_i.error
-//       })
-//   );
+  //       .valid_o(cfg_reg_buf_req_o.valid),
+  //       .ready_i(cfg_reg_buf_rsp_i.ready),
+  //       .data_o({
+  //         cfg_reg_buf_req_o.addr,
+  //         cfg_reg_buf_req_o.write,
+  //         cfg_reg_buf_req_o.wdata,
+  //         cfg_reg_buf_req_o.wstrb,
+  //         cfg_reg_rsp_i.rdata,
+  //         cfg_reg_rsp_i.error
+  //       })
+  //   );
 
 
   axi_cut #(
@@ -568,8 +569,8 @@ module dut #(
       .slv_rsp_o(sq_axi_rsp_i),
       .mst_req_o(m_axi_req_i),
       .mst_rsp_i(m_axi_rsp_o),
-      .cfg_req_i(cfg_reg_req_o),//cfg_reg_buf_req_o),
-      .cfg_rsp_o(cfg_reg_rsp_i)//cfg_reg_buf_rsp_i)
+      .cfg_req_i(cfg_reg_req_o),  //cfg_reg_buf_req_o),
+      .cfg_rsp_o(cfg_reg_rsp_i)   //cfg_reg_buf_rsp_i)
   );
 
 
