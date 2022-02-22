@@ -1,12 +1,8 @@
 #!/bin/bash
 
-SCRIPT=`realpath $0`
-SCRIPTPATH=`dirname $SCRIPT`
-
 # clang formatting
 echo "Format c/cpp/h files"
-#find . -not -path "./.*" -not -path "*OpenROAD*" -not -path "*verible*" -name "*.cpp" -o -name "*.c" -o -name "*.h" | xargs -I {} clang-format -i {}
-find . -type d \( -path $SCRIPTPATH/../OpenROAD-flow-scripts -o -path $SCRIPTPATH/verible-v0.0-1897-gbe7e2250 -o -path $SCRIPTPATH/../src/axi -o -path $SCRIPTPATH/../src/register_interface -o -path $SCRIPTPATH/../src/common_cells \) -prune -o -name "*.cpp" -o -name "*.c" -o -name "*.h" | xargs -I {} clang-format -i {}
+find . -type d \( -name *venv* -o -name *common_cells* -o -name *axi* -o -name *register_interface* -o -name *OpenROAD-flow-scripts* -o -name *verible-v0.0-1897-gbe7e2250* \) -prune -false -o -name ".c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs -I {} clang-format -i {}
 
 # install verible
 if [ ! -f "verible.tar.gz" ]; then
@@ -18,6 +14,6 @@ export PATH=./verible-v0.0-1897-gbe7e2250/bin/:$PATH
 
 # format all verilog files
 echo "Format verilog files.."
-find . -type d \( -path $SCRIPTPATH/../OpenROAD-flow-scripts -o -path $SCRIPTPATH/verible-v0.0-1897-gbe7e2250 -o -path $SCRIPTPATH/../src/axi -o -path $SCRIPTPATH/../src/register_interface -o -path $SCRIPTPATH/../src/common_cells \) -prune -o -name ".svh" -o -name "*.sv" -o -name "*.v" | xargs verible-verilog-format -inplace
+find . -type d \( -name *venv* -o -name *common_cells* -o -name *axi* -o -name *register_interface* -o -name *OpenROAD-flow-scripts* -o -name *verible-v0.0-1897-gbe7e2250* \) -prune -false -o -name ".svh" -o -name "*.sv" -o -name "*.v" | xargs verible-verilog-format -inplace
 
 echo "All done."
