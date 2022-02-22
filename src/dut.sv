@@ -53,9 +53,9 @@ module dut #(
 ) (
     input  logic                    clk,
     input  logic                    rst,
-    /*
-     * AXI master interface
-     */
+    //
+    // AXI master interface
+    //
     // Write address channel
     output logic [    ID_WIDTH-1:0] m_axi_awid,
     output logic [  ADDR_WIDTH-1:0] m_axi_awaddr,
@@ -105,9 +105,9 @@ module dut #(
     input  logic [ RUSER_WIDTH-1:0] m_axi_ruser,
     input  logic                    m_axi_rvalid,
     output logic                    m_axi_rready,
-    /*
-     * AXI slave interface
-     */
+    //
+    // AXI slave interface
+    //
     // Write address channel
     input  logic [    ID_WIDTH-1:0] s_axi_awid,
     input  logic [  ADDR_WIDTH-1:0] s_axi_awaddr,
@@ -157,9 +157,9 @@ module dut #(
     output logic [ RUSER_WIDTH-1:0] s_axi_ruser,
     output logic                    s_axi_rvalid,
     input  logic                    s_axi_rready,
-    /*
-     * AXI slave configuration interface
-     */
+    //
+    // AXI slave configuration interface
+    //
     // Write address channel
     input  logic [    ID_WIDTH-1:0] cfg_axi_awid,
     input  logic [  ADDR_WIDTH-1:0] cfg_axi_awaddr,
@@ -211,11 +211,13 @@ module dut #(
     input  logic                    cfg_axi_rready
 );
 
-  /*
-     * Master/slave (AXI) and register interface request/response structs
-     */
-  `REG_BUS_TYPEDEF_ALL(iopmp_reg, logic[7:0], logic[DATA_WIDTH-1:0],
-                       logic[STRB_WIDTH-1:0])  // name, addr_t, data_t, strb_t
+   //
+   // Master/slave (AXI) and register interface request/response structs
+   //
+  typedef logic[7:0] reg_addr_t;
+  typedef logic[DATA_WIDTH-1:0] reg_data_t;
+  typedef logic[STRB_WIDTH-1:0] reg_strb_t;
+  `REG_BUS_TYPEDEF_ALL(iopmp_reg, reg_addr_t, reg_data_t, reg_strb_t)  // name, addr_t, data_t, strb_t
   iopmp_reg_req_t cfg_reg_req_o;
   iopmp_reg_rsp_t cfg_reg_rsp_i;
 
@@ -233,9 +235,9 @@ module dut #(
   iopmp_axi_req_t m_axi_req_i, mq_axi_req_i, s_axi_req_o, sq_axi_req_o, cfg_axi_req_o;
   iopmp_axi_rsp_t m_axi_rsp_o, mq_axi_rsp_o, s_axi_rsp_i, sq_axi_rsp_i, cfg_axi_rsp_i;
 
-  /*
-     * Traditional AXI slave signal to (req/resp) pair conversion
-     */
+  //
+  // Traditional AXI slave signal to (req/resp) pair conversion
+  //
   axi_slave_connector #(
       .DATA_WIDTH  (DATA_WIDTH),
       .ADDR_WIDTH  (ADDR_WIDTH),
@@ -249,9 +251,9 @@ module dut #(
       .axi_req_t   (iopmp_axi_req_t),
       .axi_rsp_t   (iopmp_axi_rsp_t)
   ) slave_connector0 (
-      /*
-         * AXI signals
-         */
+      //
+      // AXI signals
+      //
       .s_axi_awid    (s_axi_awid),
       .s_axi_awaddr  (s_axi_awaddr),
       .s_axi_awlen   (s_axi_awlen),
@@ -296,9 +298,9 @@ module dut #(
       .s_axi_ruser   (s_axi_ruser),
       .s_axi_rvalid  (s_axi_rvalid),
       .s_axi_rready  (s_axi_rready),
-      /*
-         * AXI request/response pair
-         */
+      //
+      // AXI request/response pair
+      //
       .axi_req_o     (s_axi_req_o),
       .axi_rsp_i     (s_axi_rsp_i)
   );
@@ -316,9 +318,9 @@ module dut #(
       .axi_req_t   (iopmp_axi_req_t),
       .axi_rsp_t   (iopmp_axi_rsp_t)
   ) slave_connector1 (
-      /*
-         * AXI signals
-         */
+      //
+      // AXI signals
+      //
       .s_axi_awid    (cfg_axi_awid),
       .s_axi_awaddr  (cfg_axi_awaddr),
       .s_axi_awlen   (cfg_axi_awlen),
@@ -363,16 +365,16 @@ module dut #(
       .s_axi_ruser   (cfg_axi_ruser),
       .s_axi_rvalid  (cfg_axi_rvalid),
       .s_axi_rready  (cfg_axi_rready),
-      /*
-         * AXI request/response pair
-         */
+      //
+      // AXI request/response pair
+      //
       .axi_req_o     (cfg_axi_req_o),
       .axi_rsp_i     (cfg_axi_rsp_i)
   );
 
-  /*
-     * Traditional AXI master signal to (req/resp) pair conversion
-     */
+  //
+  // Traditional AXI master signal to (req/resp) pair conversion
+  //
   axi_master_connector #(
       .DATA_WIDTH  (DATA_WIDTH),
       .ADDR_WIDTH  (ADDR_WIDTH),
@@ -386,9 +388,9 @@ module dut #(
       .axi_req_t   (iopmp_axi_req_t),
       .axi_rsp_t   (iopmp_axi_rsp_t)
   ) master_connector0 (
-      /*
-         * AXI signals
-         */
+      //
+      // AXI signals
+      //
       .m_axi_awid    (m_axi_awid),
       .m_axi_awaddr  (m_axi_awaddr),
       .m_axi_awlen   (m_axi_awlen),
@@ -433,16 +435,16 @@ module dut #(
       .m_axi_ruser   (m_axi_ruser),
       .m_axi_rvalid  (m_axi_rvalid),
       .m_axi_rready  (m_axi_rready),
-      /*
-         * AXI request/response pair
-         */
+      //
+      // AXI request/response pair
+      //
       .axi_req_i     (mq_axi_req_i),
       .axi_rsp_o     (mq_axi_rsp_o)
   );
 
-  /*
-     * Register bus interface (for the pmp configuration)
-     */
+  //
+  // Register bus interface (for the pmp configuration)
+  //
   axi_to_reg #(
       // width of the address
       .ADDR_WIDTH(ADDR_WIDTH),
@@ -452,6 +454,13 @@ module dut #(
       .ID_WIDTH  (ID_WIDTH),
       // width of the user signal.
       .USER_WIDTH(AWUSER_WIDTH),
+      // maximum number of outstanding writes.
+      .AXI_MAX_WRITE_TXNS(32'd2),
+      // maximum number of outstanding reads.
+      .AXI_MAX_READ_TXNS(32'd2),
+      // whether the AXI-Lite W channel should be decoupled with a register. This
+      // can help break long paths at the expense of registers.
+      .DECOUPLE_W(1),
       // AXI request struct type
       .axi_req_t (iopmp_axi_req_t),
       // AXI response struct type
@@ -469,6 +478,51 @@ module dut #(
       .reg_req_o (cfg_reg_req_o),
       .reg_rsp_i (cfg_reg_rsp_i)
   );
+
+
+  // buffer the reg signal
+
+//   iopmp_reg_req_t cfg_reg_buf_req_o;
+//   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
+
+//   typedef struct packed {
+//     reg_addr_t  addr;
+//     logic       write;
+//     reg_data_t  wdata;
+//     reg_strb_t  wstrb;
+//     reg_data_t  rdata;
+//     logic       error;
+//   } reg_intf_data_t;
+
+//   spill_register #(
+//       .T(reg_intf_data_t),
+//       .Bypass(1'b0)
+//   ) spill_register0 (
+//       .clk_i (clk),
+//       .rst_ni(!rst),
+
+//       .valid_i(cfg_reg_req_o.valid),
+//       .ready_o(cfg_reg_rsp_i.ready),
+//       .data_i({
+//         cfg_reg_req_o.addr,
+//         cfg_reg_req_o.write,
+//         cfg_reg_req_o.wdata,
+//         cfg_reg_req_o.wstrb,
+//         cfg_reg_buf_rsp_i.rdata,
+//         cfg_reg_buf_rsp_i.error
+//       }),
+
+//       .valid_o(cfg_reg_buf_req_o.valid),
+//       .ready_i(cfg_reg_buf_rsp_i.ready),
+//       .data_o({
+//         cfg_reg_buf_req_o.addr,
+//         cfg_reg_buf_req_o.write,
+//         cfg_reg_buf_req_o.wdata,
+//         cfg_reg_buf_req_o.wstrb,
+//         cfg_reg_rsp_i.rdata,
+//         cfg_reg_rsp_i.error
+//       })
+//   );
 
 
   axi_cut #(
@@ -494,9 +548,9 @@ module dut #(
       .mst_resp_i(sq_axi_rsp_i)
   );
 
-  /*
-     * Device under test, AXI IO-PMP
-     */
+  //
+  // Device under test, AXI IO-PMP
+  //
   axi_io_pmp #(
       .axi_aw_chan_t(iopmp_axi_aw_chan_t),
       .axi_w_chan_t (iopmp_axi_w_chan_t),
@@ -514,8 +568,8 @@ module dut #(
       .slv_rsp_o(sq_axi_rsp_i),
       .mst_req_o(m_axi_req_i),
       .mst_rsp_i(m_axi_rsp_o),
-      .cfg_req_i(cfg_reg_req_o),
-      .cfg_rsp_o(cfg_reg_rsp_i)
+      .cfg_req_i(cfg_reg_req_o),//cfg_reg_buf_req_o),
+      .cfg_rsp_o(cfg_reg_rsp_i)//cfg_reg_buf_rsp_i)
   );
 
 
@@ -542,9 +596,9 @@ module dut #(
       .mst_resp_i(mq_axi_rsp_o)
   );
 
-  /*
-     * Simulation / Debugging
-     */
+  //
+  // Simulation / Debugging
+  //
 `ifdef COCOTB_SIM
   initial begin
     if (WAVES == 1) begin

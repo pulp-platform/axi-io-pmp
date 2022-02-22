@@ -225,7 +225,7 @@ if cocotb.SIM_NAME:
 @pytest.mark.parametrize("reg_type", [1])  # [None, 0, 1, 2]
 @pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64, 128]
 @pytest.mark.parametrize("addr_width", [64])  # [32, 64]
-@pytest.mark.parametrize("simulator", ["icarus"])  # ["verilator", "questa"]
+@pytest.mark.parametrize("simulator", ["icarus"])  # ["icarus", "verilator", "questa"]
 def test_axi_io_pmp(request, simulator, addr_width, data_width, reg_type):
     # activate for remote debugging
     if "REMOTE" in os.environ:

@@ -1,6 +1,6 @@
 wheel==0.37.1
 cocotb==1.6.1
-cocotb-test==0.2.1
+git+https://github.com/andreaskuster/cocotb-test@4beff202c36313957e2e558888bff92d0818c79b # fixes coverage support, PR pending (https://github.com/themperek/cocotb-test/pull/172)
 cocotbext-axi==0.1.18
 gprof2dot==2021.2.21
 bitarray==2.3.5
