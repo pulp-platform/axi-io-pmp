@@ -14,31 +14,31 @@
 `timescale 1ns / 1ps
 
 module axi_slave_connector #(
-    // Width of data bus in bits
+    // width of data bus in bits
     parameter      DATA_WIDTH   = 32,
-    // Width of address bus in bits
+    // width of address bus in bits
     parameter      ADDR_WIDTH   = 32,
-    // Width of strobe (width of data bus in words)
+    // width of strobe (width of data bus in words)
     parameter      STRB_WIDTH   = (DATA_WIDTH / 8),
-    // Width of id signal
+    // width of id signal
     parameter      ID_WIDTH     = 8,
-    // Width of awuser signal
+    // width of awuser signal
     parameter      AWUSER_WIDTH = 1,
-    // Width of wuser signal
+    // width of wuser signal
     parameter      WUSER_WIDTH  = 1,
-    // Width of buser signal
+    // width of buser signal
     parameter      BUSER_WIDTH  = 1,
-    // Width of aruser signal
+    // width of aruser signal
     parameter      ARUSER_WIDTH = 1,
-    // Width of ruser signal
+    // width of ruser signal
     parameter      RUSER_WIDTH  = 1,
     // AXI request/response
     parameter type axi_req_t    = logic,
     parameter type axi_rsp_t    = logic
 ) (
-    /*
-     * Write address channel
-     */
+    //
+    // Write address channel
+    //
     input  logic     [    ID_WIDTH-1:0] s_axi_awid,
     input  logic     [  ADDR_WIDTH-1:0] s_axi_awaddr,
     input  logic     [             7:0] s_axi_awlen,
@@ -52,26 +52,26 @@ module axi_slave_connector #(
     input  logic     [AWUSER_WIDTH-1:0] s_axi_awuser,
     input  logic                        s_axi_awvalid,
     output logic                        s_axi_awready,
-    /*
-     * Write data channel
-     */
+    //
+    // Write data channel
+    //
     input  logic     [  DATA_WIDTH-1:0] s_axi_wdata,
     input  logic     [  STRB_WIDTH-1:0] s_axi_wstrb,
     input  logic                        s_axi_wlast,
     input  logic     [ WUSER_WIDTH-1:0] s_axi_wuser,
     input  logic                        s_axi_wvalid,
     output logic                        s_axi_wready,
-    /*
-     * Write response channel
-     */
+    //
+    // Write response channel
+    //
     output logic     [    ID_WIDTH-1:0] s_axi_bid,
     output logic     [             1:0] s_axi_bresp,
     output logic     [ BUSER_WIDTH-1:0] s_axi_buser,
     output logic                        s_axi_bvalid,
     input  logic                        s_axi_bready,
-    /*
-     * Read address channel
-     */
+    //
+    // Read address channel
+    //
     input  logic     [    ID_WIDTH-1:0] s_axi_arid,
     input  logic     [  ADDR_WIDTH-1:0] s_axi_araddr,
     input  logic     [             7:0] s_axi_arlen,
@@ -85,9 +85,9 @@ module axi_slave_connector #(
     input  logic     [ARUSER_WIDTH-1:0] s_axi_aruser,
     input  logic                        s_axi_arvalid,
     output logic                        s_axi_arready,
-    /*
-     * Read data channel
-     */
+    //
+    // Read data channel
+    //
     output logic     [    ID_WIDTH-1:0] s_axi_rid,
     output logic     [  DATA_WIDTH-1:0] s_axi_rdata,
     output logic     [             1:0] s_axi_rresp,
@@ -95,16 +95,16 @@ module axi_slave_connector #(
     output logic     [ RUSER_WIDTH-1:0] s_axi_ruser,
     output logic                        s_axi_rvalid,
     input  logic                        s_axi_rready,
-    /*
-     * AXI request/response pair
-     */
+    //
+    // AXI request/response pair
+    //
     output axi_req_t                    axi_req_o,
     input  axi_rsp_t                    axi_rsp_i
 );
 
-  /*
-     * Write address channel
-     */
+  //
+  // Write address channel
+  //
   assign axi_req_o.aw.id     = s_axi_awid;
   assign axi_req_o.aw.addr   = s_axi_awaddr;
   assign axi_req_o.aw.len    = s_axi_awlen;
@@ -114,15 +114,15 @@ module axi_slave_connector #(
   assign axi_req_o.aw.cache  = s_axi_awcache;
   assign axi_req_o.aw.prot   = s_axi_awprot;
   assign axi_req_o.aw.qos    = s_axi_awqos;
-  // assign axi_req_o.aw.atop   = slave.aw_atop; // TODO: check if we should/can add this field to the axi interface
+  assign axi_req_o.aw.atop   = {$bits(axi_req_o.aw.atop) {1'b0}};  // hardwire to zero
   assign axi_req_o.aw.region = s_axi_awregion;
   assign axi_req_o.aw.user   = s_axi_awuser;
   assign axi_req_o.aw_valid  = s_axi_awvalid;
   assign s_axi_awready       = axi_rsp_i.aw_ready;
 
-  /*
-     * Write data channel
-     */
+  //
+  // Write data channel
+  //
   assign axi_req_o.w.data    = s_axi_wdata;
   assign axi_req_o.w.strb    = s_axi_wstrb;
   assign axi_req_o.w.last    = s_axi_wlast;
@@ -130,18 +130,18 @@ module axi_slave_connector #(
   assign axi_req_o.w_valid   = s_axi_wvalid;
   assign s_axi_wready        = axi_rsp_i.w_ready;
 
-  /*
-     * Write response channel
-     */
+  //
+  // Write response channel
+  //
   assign s_axi_bid           = axi_rsp_i.b.id;
   assign s_axi_bresp         = axi_rsp_i.b.resp;
   assign s_axi_bvalid        = axi_rsp_i.b_valid;
   assign s_axi_buser         = axi_rsp_i.b.user;
   assign axi_req_o.b_ready   = s_axi_bready;
 
-  /*
-     * Read address channel
-     */
+  //
+  // Read address channel
+  //
   assign axi_req_o.ar.id     = s_axi_arid;
   assign axi_req_o.ar.addr   = s_axi_araddr;
   assign axi_req_o.ar.len    = s_axi_arlen;
@@ -156,9 +156,9 @@ module axi_slave_connector #(
   assign axi_req_o.ar_valid  = s_axi_arvalid;
   assign s_axi_arready       = axi_rsp_i.ar_ready;
 
-  /*
-     * Read data channel
-     */
+  //
+  // Read data channel
+  //
   assign s_axi_rid           = axi_rsp_i.r.id;
   assign s_axi_rdata         = axi_rsp_i.r.data;
   assign s_axi_rresp         = axi_rsp_i.r.resp;
