@@ -486,9 +486,9 @@ module dut #(
   iopmp_reg_req_t cfg_reg_buf_req_o;
   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
   reg_intf_cut #(
-    .Bypass(1'b0)
+      .Bypass(1'b0),
       .reg_req_t(iopmp_reg_req_t),
-      .reg_rsp_t(iopmp_reg_rsp_t),
+      .reg_rsp_t(iopmp_reg_rsp_t)
   ) reg_intf_cut0 (
       .clk_i  (clk),
       .rst_ni (!rst),

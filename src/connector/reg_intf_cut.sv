@@ -1,20 +1,19 @@
 module reg_intf_cut #(
+    // make this register transparent
+    parameter bit  Bypass    = 1'b0,
     // register interface request/response
     parameter type reg_req_t = logic,
-    parameter type reg_rsp_t = logic,
-    // make this spill register transparent
-    parameter bit  Bypass    = 1'b0
+    parameter type reg_rsp_t = logic
 ) (
-    input  logic clk_i   ,
-    input  logic rst_ni  ,
+    input logic clk_i,
+    input logic rst_ni,
     // input
-    input  reg_req_t req_in,
+    input reg_req_t req_in,
     output reg_rsp_t rsp_in,
     // output
     output reg_req_t req_out,
     input reg_rsp_t rsp_out
 );
-
 
   if (Bypass) begin : gen_bypass
 
@@ -30,16 +29,15 @@ module reg_intf_cut #(
     assign rsp_in.rdata  = rsp_out.rdata;
     assign rsp_in.error  = rsp_out.error;
 
-    ;
-
   end else begin : gen_reg
 
     always @(posedge clk_i) begin
 
       if (!rst_ni) begin
 
-        req_out.valid = 1'b0;
-        rsp_in.ready  = 1'b0;
+        // handshake
+        req_out.valid <= 1'b0;
+        rsp_in.ready  <= 1'b0;
 
         // data
         req_out.addr  <= '0;
@@ -52,8 +50,8 @@ module reg_intf_cut #(
       end else begin
 
         // handshake
-        req_out.valid = req_in.valid;
-        rsp_in.ready  = rsp_out.ready;
+        req_out.valid <= req_in.valid;
+        rsp_in.ready  <= rsp_out.ready;
 
         // data
         req_out.addr  <= req_in.addr;
@@ -64,15 +62,7 @@ module reg_intf_cut #(
         rsp_in.error  <= rsp_out.error;
 
       end
-
     end
-
   end
 
 endmodule
-
-
-
-
-
-
