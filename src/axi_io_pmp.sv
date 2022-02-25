@@ -41,7 +41,7 @@ module axi_io_pmp #(
     parameter int unsigned PMP_LEN        = 54,                // rv64: 54, rv32: 32
     parameter int unsigned NR_ENTRIES     = 16,
     parameter int unsigned MAX_ENTRIES    = 16,
-    parameter int unsigned PMPGranularity = 10,                // 4K
+    parameter int unsigned PMPGranularity = 10,                // 2**(G+2) = 4K
     // AXI parameters
     // maximum number of AXI bursts outstanding at the same time
     parameter int unsigned MaxTxns        = 32'd2
