@@ -41,6 +41,7 @@ sources :=  common_cells/src/lzc.sv \
 			register_interface/vendor/lowrisc_opentitan/src/prim_subreg_shadow.sv \
 			connector/axi_master_connector.sv \
 			connector/axi_slave_connector.sv \
+			connector/reg_cut.sv \
 			pmp/pmp_entry.sv \
 			pmp/pmp.sv \
 			axi_io_pmp.sv \

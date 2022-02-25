@@ -9,5 +9,5 @@ hjson==3.0.2
 pyyaml==6.0.0
 pytest==6.2.5
 pytest-xdist==2.5.0
-pydevd-pycharm==213.6461.77
+pydevd-pycharm~=213.6777.50
 numpy==1.22.1

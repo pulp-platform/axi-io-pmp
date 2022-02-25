@@ -18,37 +18,35 @@
 `include "register_interface/typedef.svh"
 
 module dut #(
-    // Width of data bus in bits
+    // width of data bus in bits
     parameter DATA_WIDTH    = 64,
-    // Width of address bus in bits
+    // width of address bus in bits
     parameter ADDR_WIDTH    = 64,
-    // Width of strobe (width of data bus in words)
+    // width of strobe (width of data bus in words)
     parameter STRB_WIDTH    = (DATA_WIDTH / 8),
-    // Width of id signal
+    // width of id signal
     parameter ID_WIDTH      = 8,
-    // Propagate awuser signal
+    // propagate awuser signal
     parameter AWUSER_ENABLE = 0,
-    // Width of awuser signal
+    // width of awuser signal
     parameter AWUSER_WIDTH  = 1,
-    // Propagate wuser signal
+    // propagate wuser signal
     parameter WUSER_ENABLE  = 0,
-    // Width of wuser signal
+    // width of wuser signal
     parameter WUSER_WIDTH   = 1,
-    // Propagate buser signal
+    // propagate buser signal
     parameter BUSER_ENABLE  = 0,
-    // Width of buser signal
+    // width of buser signal
     parameter BUSER_WIDTH   = 1,
-    // Propagate aruser signal
+    // propagate aruser signal
     parameter ARUSER_ENABLE = 0,
-    // Width of aruser signal
+    // width of aruser signal
     parameter ARUSER_WIDTH  = 1,
-    // Propagate ruser signal
+    // propagate ruser signal
     parameter RUSER_ENABLE  = 0,
-    // Width of ruser signal
+    // width of ruser signal
     parameter RUSER_WIDTH   = 1,
-    // register type { Bypass = 0, Registered = 1, Skid Buffer = 2 }
-    parameter REG_TYPE      = 1,
-    // Waveform generation { Off=0, On=1 }
+    // waveform generation { Off=0, On=1 }
     parameter WAVES         = 0
 ) (
     input  logic                    clk,
@@ -444,7 +442,7 @@ module dut #(
   );
 
   //
-  // Register bus interface (for the pmp configuration)
+  // Register bus interface (PMP configuration)
   //
   axi_to_reg #(
       // width of the address
@@ -480,48 +478,28 @@ module dut #(
       .reg_rsp_i (cfg_reg_rsp_i)
   );
 
-
-  // buffer the register bus signal
+  //
+  // Register interface buffer
+  //
   iopmp_reg_req_t cfg_reg_buf_req_o;
   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
-
-  typedef struct packed {
-    reg_addr_t addr;
-    logic      write;
-    reg_data_t wdata;
-    reg_strb_t wstrb;
-    reg_data_t rdata;
-    logic      error;
-  } reg_handshake_data_t;
-
-  spill_register #(
-      .T(reg_handshake_data_t),
-      .Bypass(1'b1)  // TODO: check why it gets stuck when Bypass=0
-  ) spill_register0 (
-      .clk_i(clk),
-      .rst_ni(!rst),
-      .valid_i(cfg_reg_req_o.valid),
-      .ready_o(cfg_reg_rsp_i.ready),
-      .data_i({
-        cfg_reg_req_o.addr,
-        cfg_reg_req_o.write,
-        cfg_reg_req_o.wdata,
-        cfg_reg_req_o.wstrb,
-        cfg_reg_buf_rsp_i.rdata,
-        cfg_reg_buf_rsp_i.error
-      }),
-      .valid_o(cfg_reg_buf_req_o.valid),
-      .ready_i(cfg_reg_buf_rsp_i.ready),
-      .data_o({
-        cfg_reg_buf_req_o.addr,
-        cfg_reg_buf_req_o.write,
-        cfg_reg_buf_req_o.wdata,
-        cfg_reg_buf_req_o.wstrb,
-        cfg_reg_rsp_i.rdata,
-        cfg_reg_rsp_i.error
-      })
+  reg_cut #(
+      .Bypass(1'b0),
+      .reg_req_t(iopmp_reg_req_t),
+      .reg_rsp_t(iopmp_reg_rsp_t)
+  ) reg_cut0 (
+      .clk_i  (clk),
+      .rst_ni (!rst),
+      .req_in (cfg_reg_req_o),
+      .rsp_in (cfg_reg_rsp_i),
+      .req_out(cfg_reg_buf_req_o),
+      .rsp_out(cfg_reg_buf_rsp_i)
   );
 
+
+  //
+  // AXI register before the IO-PMP 
+  //
   axi_cut #(
       // bypass enable
       .Bypass   (1'b0),
@@ -546,7 +524,7 @@ module dut #(
   );
 
   //
-  // Device under test, AXI IO-PMP
+  // Device under test: AXI IO-PMP
   //
   axi_io_pmp #(
       .axi_aw_chan_t(iopmp_axi_aw_chan_t),
@@ -566,10 +544,13 @@ module dut #(
       .mst_req_o(m_axi_req_i),
       .mst_rsp_i(m_axi_rsp_o),
       .cfg_req_i(cfg_reg_buf_req_o),
-      .cfg_rsp_o(cfg_reg_buf_rsp_i)
+      .cfg_rsp_o(cfg_reg_buf_rsp_i),
+      .devmode_i(1'b0)
   );
 
-
+  //
+  // AXI register after the IO-PMP 
+  //
   axi_cut #(
       // bypass enable
       .Bypass   (1'b0),

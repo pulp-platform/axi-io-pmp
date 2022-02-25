@@ -18,7 +18,7 @@ module pmp_entry #(
     parameter int unsigned PLEN           = 56,
     parameter int unsigned PMP_LEN        = 54,
     // 0 = 4bytes NA4 / 8bytes NAPOT (default), 1 = 16 byte NAPOT, 2 = 32 byte NAPOT, 3 = 64 byte NAPOT, etc.
-    parameter int unsigned PMPGranularity = 0
+    parameter int unsigned PMPGranularity = 2
 ) (
     // Input
     input  logic                  [   PLEN-1:0] addr_i,
@@ -29,9 +29,29 @@ module pmp_entry #(
     // Output
     output logic                                match_o
 );
+
+  logic [PMP_LEN-1:0] conf_addr_i_mod;
+  logic [PMP_LEN-1:0] conf_addr_prev_i_mod;
+
+  always_comb begin
+
+    conf_addr_i_mod = conf_addr_i;
+    conf_addr_prev_i_mod = conf_addr_prev_i;
+
+    if(conf_addr_mode_i == riscv::OFF | conf_addr_mode_i == riscv::TOR) begin  // riscv::OFF or riscv::TOR -> force 0 for bits [G-1:0] where G is the granularity
+      conf_addr_i_mod[PMPGranularity-1:0] = {PMPGranularity{1'b0}};
+      conf_addr_prev_i_mod = {PMPGranularity{1'b0}};
+
+    end else if (conf_addr_mode_i == riscv::NAPOT) begin // riscv::NAPOT -> force 1 for bits [G-2:0] where G is the granularity
+      conf_addr_i_mod[PMPGranularity-2:0] = {(PMPGranularity - 1) {1'b1}};
+      conf_addr_prev_i_mod = {(PMPGranularity - 1) {1'b1}};
+    end
+  end
+
+
   logic [PLEN-1:0] conf_addr_n;
   logic [$clog2(PLEN)-1:0] trail_ones;
-  assign conf_addr_n = ~conf_addr_i;
+  assign conf_addr_n = ~conf_addr_i_mod;
   lzc #(
       .WIDTH(PLEN),
       .MODE (1'b0)
@@ -46,22 +66,22 @@ module pmp_entry #(
       riscv::TOR: begin
         // check that the requested address is in between the two
         // configuration addresses
-        if (addr_i >= (conf_addr_prev_i << (2 + PMPGranularity)) && addr_i < (conf_addr_i << (2 + PMPGranularity))) begin
+        if (addr_i >= (conf_addr_prev_i_mod << 2) && addr_i < (conf_addr_i_mod << 2)) begin
           match_o = 1'b1;
         end else match_o = 1'b0;
 
 `ifdef FORMAL
         if (match_o == 0) begin
-          assert(addr_i >= (conf_addr_i << (2 + PMPGranularity)) || addr_i < (conf_addr_prev_i << (2 + PMPGranularity)));
+          assert (addr_i >= (conf_addr_i_mod << 2) || addr_i < (conf_addr_prev_i_mod << 2));
         end else begin
-          assert(addr_i < (conf_addr_i << (2 + PMPGranularity)) && addr_i >= (conf_addr_prev_i << (2 + PMPGranularity)));
+          assert (addr_i < (conf_addr_i_mod << 2) && addr_i >= (conf_addr_prev_i_mod << 2));
         end
 `endif
       end
       riscv::NA4, riscv::NAPOT: begin
 
-        if (conf_addr_mode_i == riscv::NA4 && PMPGranularity > 0) begin
-          match_o = 1'b0;  // not selectable for G > 0
+        if (conf_addr_mode_i == riscv::NA4 && PMPGranularity > 2) begin
+          match_o = 1'b0;  // not selectable for G > 2
         end else begin
 
           logic [PLEN-1:0] base;
@@ -72,46 +92,42 @@ module pmp_entry #(
             size = 2;
           end else begin
             // use the extracted trailing ones
-            if (PMPGranularity == 0) begin
-              size = trail_ones + 3;
-            end else begin // the before NA4 case i.e. Granularity+2 must be available as NAPOT range for G>0
-              size = trail_ones + 3 + (PMPGranularity - 1);
-            end
+            size = trail_ones + 3;
           end
 
           mask = '1 << size;
-          base = (conf_addr_i << (2 + PMPGranularity)) & mask;
+          base = (conf_addr_i_mod << 2) & mask;
           match_o = (addr_i & mask) == base ? 1'b1 : 1'b0;
 
-          // `ifdef FORMAL // TODO: update them to support granularity in the calculation
-          // // size extract checks
-          // assert(size >= 2);
-          // if (conf_addr_mode_i == riscv::NAPOT) begin
-          //     assert(size > 2);
-          //     if (size < PMP_LEN) assert(conf_addr_i[size - 3] == 0);
-          //     for (int i = 0; i < PMP_LEN; i++) begin
-          //         if (size > 3 && i <= size - 4) begin
-          //             assert(conf_addr_i[i] == 1); // check that all the rest are ones
-          //         end
-          //     end
-          // end
+`ifdef FORMAL  // TODO: update them to support granularity in the calculation
+          // size extract checks
+          assert (size >= 2);
+          if (conf_addr_mode_i == riscv::NAPOT) begin
+            assert (size > 2);
+            if (size < PMP_LEN) assert (conf_addr_i_mod[size-3] == 0);
+            for (int i = 0; i < PMP_LEN; i++) begin
+              if (size > 3 && i <= size - 4) begin
+                assert (conf_addr_i_mod[i] == 1);  // check that all the rest are ones
+              end
+            end
+          end
 
-          // if (size < PLEN-1) begin
-          //     if (base + 2**size > base) begin // check for overflow
-          //         if (match_o == 0) begin
-          //             assert(addr_i >= base + 2**size || addr_i < base);
-          //         end else begin
-          //             assert(addr_i < base + 2**size && addr_i >= base);
-          //         end
-          //     end else begin
-          //         if (match_o == 0) begin
-          //             assert(addr_i - 2**size >= base || addr_i < base);
-          //         end else begin
-          //             assert(addr_i - 2**size < base && addr_i >= base);
-          //         end
-          //     end
-          // end
-          // `endif
+          if (size < PLEN - 1) begin
+            if (base + 2 ** size > base) begin  // check for overflow
+              if (match_o == 0) begin
+                assert (addr_i >= base + 2 ** size || addr_i < base);
+              end else begin
+                assert (addr_i < base + 2 ** size && addr_i >= base);
+              end
+            end else begin
+              if (match_o == 0) begin
+                assert (addr_i - 2 ** size >= base || addr_i < base);
+              end else begin
+                assert (addr_i - 2 ** size < base && addr_i >= base);
+              end
+            end
+          end
+`endif
         end
       end
       riscv::OFF: match_o = 1'b0;

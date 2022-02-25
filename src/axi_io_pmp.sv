@@ -14,15 +14,15 @@
 `timescale 1ns / 1ps
 
 module axi_io_pmp #(
-    // Width of data bus in bits
+    // width of data bus in bits
     parameter              DATA_WIDTH     = 64,
-    // Width of address bus in bits
+    // width of address bus in bits
     parameter              ADDR_WIDTH     = 64,
-    // Width of strobe (width of data bus in words)
+    // width of strobe (width of data bus in words)
     parameter              STRB_WIDTH     = (DATA_WIDTH / 8),
-    // Width of id signal
+    // width of id signal
     parameter              ID_WIDTH       = 8,
-    // Propagate awuser signal
+    // propagate awuser signal
     parameter              USER_WIDTH     = 0,
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
@@ -41,7 +41,7 @@ module axi_io_pmp #(
     parameter int unsigned PMP_LEN        = 54,                // rv64: 54, rv32: 32
     parameter int unsigned NR_ENTRIES     = 16,
     parameter int unsigned MAX_ENTRIES    = 16,
-    parameter int unsigned PMPGranularity = 10,                // 4K
+    parameter int unsigned PMPGranularity = 10,                // 2**(G+2) = 4K
     // AXI parameters
     // maximum number of AXI bursts outstanding at the same time
     parameter int unsigned MaxTxns        = 32'd2
@@ -58,7 +58,9 @@ module axi_io_pmp #(
     input  axi_rsp_t mst_rsp_i,
     // configuration port
     input  reg_req_t cfg_req_i,
-    output reg_rsp_t cfg_rsp_o
+    output reg_rsp_t cfg_rsp_o,
+    // enable test and dev modes of the different modules
+    input  logic     devmode_i
 );
 
 
@@ -117,7 +119,7 @@ module axi_io_pmp #(
   ) io_pmp_reg_top0 (
       .clk_i    (clk_i),
       .rst_ni   (rst_ni),
-      .devmode_i(1'b0),          // if 1, explicit error return for unmapped register access
+      .devmode_i(devmode_i),     // if 1, explicit error return for unmapped register access
       // register interface
       .reg_req_i(cfg_req_mod),
       .reg_rsp_o(cfg_rsp_mod),
@@ -188,7 +190,10 @@ module axi_io_pmp #(
     endcase
   end
 
-  // address check
+
+  //
+  // Write address check
+  //
   pmp #(
       .PLEN          (PLEN),
       .PMP_LEN       (PMP_LEN),
@@ -205,6 +210,7 @@ module axi_io_pmp #(
       // output
       .allow_o      (pmp_allow_r)
   );
+
 
   //
   // Write channel PMP
@@ -268,7 +274,9 @@ module axi_io_pmp #(
     endcase
   end
 
-  // address check
+  //
+  // Read address check
+  //
   pmp #(
       .PLEN          (PLEN),
       .PMP_LEN       (PMP_LEN),
@@ -313,7 +321,7 @@ module axi_io_pmp #(
   ) axi_demux0 (
       .clk_i          (clk_i),
       .rst_ni         (rst_ni),
-      .test_i         (1'b0),
+      .test_i         (testmode_i),
       .slv_aw_select_i(allow_w),
       .slv_ar_select_i(allow_r),
       .slv_req_i      (slv_req_i),
