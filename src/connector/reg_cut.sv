@@ -1,4 +1,4 @@
-module reg_intf_cut #(
+module reg_cut #(
     // make this register transparent
     parameter bit  Bypass    = 1'b0,
     // register interface request/response
