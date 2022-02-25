@@ -18,37 +18,35 @@
 `include "register_interface/typedef.svh"
 
 module dut #(
-    // Width of data bus in bits
+    // width of data bus in bits
     parameter DATA_WIDTH    = 64,
-    // Width of address bus in bits
+    // width of address bus in bits
     parameter ADDR_WIDTH    = 64,
-    // Width of strobe (width of data bus in words)
+    // width of strobe (width of data bus in words)
     parameter STRB_WIDTH    = (DATA_WIDTH / 8),
-    // Width of id signal
+    // width of id signal
     parameter ID_WIDTH      = 8,
-    // Propagate awuser signal
+    // propagate awuser signal
     parameter AWUSER_ENABLE = 0,
-    // Width of awuser signal
+    // width of awuser signal
     parameter AWUSER_WIDTH  = 1,
-    // Propagate wuser signal
+    // propagate wuser signal
     parameter WUSER_ENABLE  = 0,
-    // Width of wuser signal
+    // width of wuser signal
     parameter WUSER_WIDTH   = 1,
-    // Propagate buser signal
+    // propagate buser signal
     parameter BUSER_ENABLE  = 0,
-    // Width of buser signal
+    // width of buser signal
     parameter BUSER_WIDTH   = 1,
-    // Propagate aruser signal
+    // propagate aruser signal
     parameter ARUSER_ENABLE = 0,
-    // Width of aruser signal
+    // width of aruser signal
     parameter ARUSER_WIDTH  = 1,
-    // Propagate ruser signal
+    // propagate ruser signal
     parameter RUSER_ENABLE  = 0,
-    // Width of ruser signal
+    // width of ruser signal
     parameter RUSER_WIDTH   = 1,
-    // register type { Bypass = 0, Registered = 1, Skid Buffer = 2 }
-    parameter REG_TYPE      = 1,
-    // Waveform generation { Off=0, On=1 }
+    // waveform generation { Off=0, On=1 }
     parameter WAVES         = 0
 ) (
     input  logic                    clk,
@@ -485,11 +483,11 @@ module dut #(
   //
   iopmp_reg_req_t cfg_reg_buf_req_o;
   iopmp_reg_rsp_t cfg_reg_buf_rsp_i;
-  reg_intf_cut #(
+  reg_cut #(
       .Bypass(1'b0),
       .reg_req_t(iopmp_reg_req_t),
       .reg_rsp_t(iopmp_reg_rsp_t)
-  ) reg_intf_cut0 (
+  ) reg_cut0 (
       .clk_i  (clk),
       .rst_ni (!rst),
       .req_in (cfg_reg_req_o),
