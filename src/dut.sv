@@ -52,6 +52,19 @@ module dut #(
     input  logic                    clk,
     input  logic                    rst,
     //
+    // Register interface bus (configuration)
+    //
+`ifdef SYNTHESIS
+    input  logic                    reg_valid,
+    output logic                    reg_ready,
+    input  logic [             7:0] req_addr,
+    input  logic                    req_write,
+    input  logic [  DATA_WIDTH-1:0] req_wdata,
+    input  logic [  STRB_WIDTH-1:0] req_wstrb,
+    output logic [  DATA_WIDTH-1:0] reg_rdata,
+    output logic                    reg_error,
+`endif
+    //
     // AXI master interface
     //
     // Write address channel
@@ -235,6 +248,23 @@ module dut #(
   iopmp_axi_rsp_t m_axi_rsp_o, mq_axi_rsp_o, s_axi_rsp_i, sq_axi_rsp_i, cfg_axi_rsp_i;
 
   //
+  // Register Bus to (reg_req_t, reg_rsp_t) pair conversion
+  //
+`ifdef SYNTHESIS
+  // handshake
+  assign cfg_reg_req_o.valid = reg_valid;
+  assign reg_ready           = cfg_reg_rsp_i.ready;
+
+  // data
+  assign cfg_reg_req_o.addr  = req_addr;
+  assign cfg_reg_req_o.write = req_write;
+  assign cfg_reg_req_o.wdata = req_wdata;
+  assign cfg_reg_req_o.wstrb = req_wstrb;
+  assign reg_rdata           = cfg_reg_rsp_i.rdata;
+  assign reg_error           = cfg_reg_rsp_i.error;
+`endif
+
+  //
   // Traditional AXI slave signal to (req/resp) pair conversion
   //
   axi_slave_connector #(
@@ -304,6 +334,7 @@ module dut #(
       .axi_rsp_i     (s_axi_rsp_i)
   );
 
+`ifndef SYNTHESIS
   axi_slave_connector #(
       .DATA_WIDTH  (DATA_WIDTH),
       .ADDR_WIDTH  (ADDR_WIDTH),
@@ -370,6 +401,7 @@ module dut #(
       .axi_req_o     (cfg_axi_req_o),
       .axi_rsp_i     (cfg_axi_rsp_i)
   );
+`endif
 
   //
   // Traditional AXI master signal to (req/resp) pair conversion
@@ -444,6 +476,7 @@ module dut #(
   //
   // Register bus interface (PMP configuration)
   //
+`ifndef SYNTHESIS
   axi_to_reg #(
       // width of the address
       .ADDR_WIDTH(ADDR_WIDTH),
@@ -477,6 +510,7 @@ module dut #(
       .reg_req_o (cfg_reg_req_o),
       .reg_rsp_i (cfg_reg_rsp_i)
   );
+`endif
 
   //
   // Register interface buffer
