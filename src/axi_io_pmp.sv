@@ -351,4 +351,9 @@ module axi_io_pmp #(
       .slv_resp_o(error_rsp)
   );
 
+  // check IO-PMP granularity restrictions
+  initial begin
+    assert (PMPGranularity >= 10) else $fatal(1, "AXI IO-PMP only supports granularity >= 4K");
+  end
+
 endmodule
