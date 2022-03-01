@@ -17,9 +17,9 @@
 module pmp #(
     parameter int unsigned PLEN           = 56,  // rv32: 34
     parameter int unsigned PMP_LEN        = 54,  // rv32: 32
-    parameter int unsigned NR_ENTRIES     = 4,
+    parameter int unsigned NR_ENTRIES     = 16,
     // 0 = 4bytes NA4 / 8bytes NAPOT (default), 1 = 16 byte NAPOT, 2 = 32 byte NAPOT, 3 = 64 byte NAPOT, etc.
-    parameter int unsigned PMPGranularity = 0
+    parameter int unsigned PMPGranularity = 2
 ) (
     // Input
     input  logic               [PLEN-1:0]              addr_i,
