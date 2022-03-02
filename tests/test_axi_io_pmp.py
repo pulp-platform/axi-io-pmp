@@ -32,10 +32,10 @@ class TB:
         cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
 
         # connect simulation axi master
-        self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "in_axi"), dut.clk, dut.rst)
+        self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
 
         # connect a simulation axi ram (slave)
-        self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "out_axi"), dut.clk, dut.rst, size=2 ** 16)
+        self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "m_axi"), dut.clk, dut.rst, size=2 ** 16)
 
         # connect simulation axi PMP config
         self.axi_pmp_cfg = AxiMaster(AxiBus.from_prefix(dut, "cfg_axi"), dut.clk, dut.rst)
@@ -102,16 +102,16 @@ async def set_pmp_napot(tb, base: int, length: int, access: bitarray, pmp_no: in
     conf: bitarray = locked + reserved + mode + access
     tb.log.info("PMP cfg: %s", conf.to01())
     # address
-    PMP_LEN = tb.dut.i_axi_io_pmp.PMP_LEN.value
+    PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
     napot_addr = int(base + (length / 2 - 1)) >> 2
     tb.log.info("PMP NAPOT addr: %s", int2ba(napot_addr, PMP_LEN).to01())
 
     # write config
-    i_read_pmp_addr = params["IO_PMP_PMP_ADDR_0_REG_OFFSET"] + 8 * pmp_no
-    await tb.axi_pmp_cfg.write(i_read_pmp_addr, (napot_addr).to_bytes(8, byteorder='little'))
+    pmp0_addr = params["IO_PMP_PMP_ADDR_0_REG_OFFSET"] + 8 * pmp_no
+    await tb.axi_pmp_cfg.write(pmp0_addr, (napot_addr).to_bytes(8, byteorder='little'))
 
-    i_read_pmp_cfg = params["IO_PMP_PMP_CFG_0_REG_OFFSET"]
-    res = await tb.axi_pmp_cfg.read(i_read_pmp_cfg, 8)
+    pmp0_cfg = params["IO_PMP_PMP_CFG_0_REG_OFFSET"]
+    res = await tb.axi_pmp_cfg.read(pmp0_cfg, 8)
     pmp_cfg_data = int.from_bytes(res.data, byteorder="little")
 
     # remove old value
@@ -121,7 +121,7 @@ async def set_pmp_napot(tb, base: int, length: int, access: bitarray, pmp_no: in
     pmp_cfg_data = pmp_cfg_data | (ba2int(conf) << (8 * pmp_no))
 
     # send back
-    await tb.axi_pmp_cfg.write(i_read_pmp_cfg, (pmp_cfg_data).to_bytes(16, byteorder='little'))
+    await tb.axi_pmp_cfg.write(pmp0_cfg, (pmp_cfg_data).to_bytes(16, byteorder='little'))
 
 
 async def run_test_write_read(dut, length: int, size: int, block: bool, mem_region=(0, 2 ** 16), pmp_slot=0):
@@ -203,8 +203,8 @@ async def run_test_bounds(dut, base: int = 0, length: int = 2 ** 12):
     # read data through the IO-PMP (at base address)
     ###########################
     data = await tb.axi_master.read(base, test_len)
-    tb.log.info("PMP read allow: %s", dut.i_axi_io_pmp.i_read_pmp.allow_o.value)
-    tb.log.info("PMP write allow: %s", dut.i_axi_io_pmp.i_write_pmp.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
     assert data.resp == AxiResp.OKAY
     assert data.data == test_data
 
@@ -215,8 +215,8 @@ async def run_test_bounds(dut, base: int = 0, length: int = 2 ** 12):
     res = await tb.axi_master.write(addr, test_data)  # highest address that is still valid for 4byte read
     data = await tb.axi_master.read(addr, test_len)
 
-    tb.log.info("PMP read allow: %s", dut.i_axi_io_pmp.i_read_pmp.allow_o.value)
-    tb.log.info("PMP write allow: %s", dut.i_axi_io_pmp.i_write_pmp.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
 
     assert res.resp == AxiResp.OKAY
     assert data.resp == AxiResp.OKAY
@@ -269,7 +269,7 @@ async def run_test_prio(dut, base: int = 0, length: int = 64):
     access_none = PMPAccess.ACCESS_NONE.value
 
     # loop over all slots
-    PMP_NUM = tb.dut.i_axi_io_pmp.NR_ENTRIES.value
+    PMP_NUM = tb.dut.axi_io_pmp0.NR_ENTRIES.value
     lock = False
     for i in reversed(range(PMP_NUM)):
         # write config
@@ -334,18 +334,18 @@ if cocotb.SIM_NAME:
     TODO
     """
     # define and extract bus information
-    data_width = len(cocotb.top.in_axi_wdata)
+    data_width = len(cocotb.top.s_axi_wdata)
     byte_lanes = data_width // 8
     max_burst_size = (byte_lanes - 1).bit_length()
     mem_range = (0, 2 ** 16)
 
     # run PMP tests
-    for test in [run_test_bounds]:
+    for test in [ run_test_bounds ]:
         factory = TestFactory(test)
         factory.add_option("length", [2**x for x in range(12, 56-1, 1)]) # test from minimal to maximal (2**56 cannot be tested with this test, since we test out-of-bound, which is not a valid physical address anymore)
         factory.generate_tests()
 
-    for test in [run_test_granularity, run_test_prio]:
+    for test in [ run_test_granularity, run_test_prio ]:
         factory = TestFactory(test)
         factory.generate_tests()
 
@@ -377,9 +377,6 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width):
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     root_dir = os.path.abspath(os.path.join(tests_dir, '..'))
     src_dir = os.path.abspath(os.path.join(root_dir, 'src'))
-    # overwrite default simulator
-    if "SIMULATOR" in os.environ:
-        simulator = os.environ["SIMULATOR"]
     os.environ["SIM"] = simulator
 
     # verilog source list
@@ -433,7 +430,7 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width):
 
         # toplevel
         "axi_io_pmp.sv",
-        f"../tb/{dut}.sv",
+        f"{dut}.sv",
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
