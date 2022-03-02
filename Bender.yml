@@ -25,7 +25,7 @@ sources:
   # Sources
   ##########
   # Top level
-  - tb/dut.sv
+  - src/dut.sv
   - src/axi_io_pmp.sv
   # AXI connector
   - src/connector/axi_master_connector.sv
