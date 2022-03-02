@@ -27,6 +27,7 @@ xargs sudo apt-get -y install < ubuntu_requirements.txt
 git submodule update --init --recursive
 python3 -m venv venv/
 source venv/bin/activate
+python3 -m pip install wheel
 python3 -m pip install -r requirements.txt
 
 # setup questasim
