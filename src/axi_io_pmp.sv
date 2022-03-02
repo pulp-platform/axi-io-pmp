@@ -11,19 +11,18 @@
 // Author:      Andreas Kuster, <kustera@ethz.ch>
 // Description: Traditional style AXI IO-PMP module
 
-`timescale 1ns / 1ps
 
 module axi_io_pmp #(
     // width of data bus in bits
-    parameter              DATA_WIDTH     = 64,
+    parameter int unsigned DATA_WIDTH     = 64,
     // width of address bus in bits
-    parameter              ADDR_WIDTH     = 64,
+    parameter int unsigned ADDR_WIDTH     = 64,
     // width of strobe (width of data bus in words)
-    parameter              STRB_WIDTH     = (DATA_WIDTH / 8),
+    parameter int unsigned STRB_WIDTH     = (DATA_WIDTH / 8),
     // width of id signal
-    parameter              ID_WIDTH       = 8,
+    parameter int unsigned ID_WIDTH       = 8,
     // propagate awuser signal
-    parameter              USER_WIDTH     = 0,
+    parameter int unsigned USER_WIDTH     = 0,
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
@@ -59,7 +58,7 @@ module axi_io_pmp #(
     // configuration port
     input  reg_req_t cfg_req_i,
     output reg_rsp_t cfg_rsp_o,
-    // enable test and dev modes of the different modules
+    // enable test/dev modes of the different modules
     input  logic     devmode_i
 );
 
@@ -116,10 +115,10 @@ module axi_io_pmp #(
   io_pmp_reg_top #(
       .reg_req_t(reg_req_t),
       .reg_rsp_t(reg_rsp_t)
-  ) io_pmp_reg_top0 (
-      .clk_i    (clk_i),
-      .rst_ni   (rst_ni),
-      .devmode_i(devmode_i),     // if 1, explicit error return for unmapped register access
+  ) i_io_pmp_reg_top (
+      .clk_i,
+      .rst_ni,
+      .devmode_i,  // if 1, explicit error return for unmapped register access
       // register interface
       .reg_req_i(cfg_req_mod),
       .reg_rsp_o(cfg_rsp_mod),
@@ -199,7 +198,7 @@ module axi_io_pmp #(
       .PMP_LEN       (PMP_LEN),
       .NR_ENTRIES    (NR_ENTRIES),
       .PMPGranularity(PMPGranularity)
-  ) pmp0 (
+  ) i_read_pmp (
       // input
       .addr_i       (pmp_addr_r),              // [PLEN-1:0], TODO: check if we slice the right bits
       .access_type_i(riscv::ACCESS_READ),      // handle read accesses
@@ -282,7 +281,7 @@ module axi_io_pmp #(
       .PMP_LEN       (PMP_LEN),
       .NR_ENTRIES    (NR_ENTRIES),
       .PMPGranularity(PMPGranularity)
-  ) pmp1 (
+  ) i_write_pmp (
       // input
       .addr_i       (pmp_addr_w),              // [PLEN-1:0], TODO: check if we slice the right bits
       .access_type_i(riscv::ACCESS_WRITE),     // handle write accesses
@@ -318,9 +317,9 @@ module axi_io_pmp #(
       .SpillB     (1'b0),
       .SpillAr    (1'b0),
       .SpillR     (1'b0)
-  ) axi_demux0 (
-      .clk_i          (clk_i),
-      .rst_ni         (rst_ni),
+  ) i_axi_demux (
+      .clk_i,
+      .rst_ni,
       .test_i         (testmode_i),
       .slv_aw_select_i(allow_w),
       .slv_ar_select_i(allow_r),
@@ -343,18 +342,25 @@ module axi_io_pmp #(
       .RespData(64'hCA11AB1EBADCAB1E),  // hexvalue for data return value
       .ATOPs(1'b1),
       .MaxTrans(1)
-  ) i_err_slv (
-      .clk_i     (clk_i),
-      .rst_ni    (rst_ni),
-      .test_i    (1'b0),
+  ) i_axi_err_slv (
+      .clk_i,
+      .rst_ni,
+      .test_i    (testmode_i),
       .slv_req_i (error_req),
       .slv_resp_o(error_rsp)
   );
 
-  // check IO-PMP granularity restrictions
-  initial begin
-    assert (PMPGranularity >= 10)
-    else $fatal(1, "AXI IO-PMP only supports granularity >= 4K");
-  end
+
+  //
+  // Assumptions and assertions
+  //
+`ifndef VERILATOR
+`ifndef SYNTHESIS
+  // pragma translate_off
+  if (PMPGranularity < 10) // check IO-PMP granularity restrictions
+    $fatal(1, "AXI IO-PMP only supports granularity >= 4K");
+  // pragma translate_on
+`endif
+`endif
 
 endmodule
