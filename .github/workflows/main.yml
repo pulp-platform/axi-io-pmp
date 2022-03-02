@@ -18,7 +18,6 @@ jobs:
      runs-on: ubuntu-latest
      steps:
        - uses: actions/checkout@v2
-       - name: Run regression
        - run: |
            source setup_env.sh
            pytest tests/
