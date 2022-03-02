@@ -45,7 +45,7 @@ sources :=  common_cells/src/lzc.sv \
 			pmp/pmp_entry.sv \
 			pmp/pmp.sv \
 			axi_io_pmp.sv \
-			dut.sv
+			../tb/dut.sv
 list_sources := $(foreach dir, ${sources}, ../src/$(dir))
    
 

@@ -18,10 +18,10 @@ SHELL := /bin/bash
 all: bender_install bender_dl bender_gen_src sim wave questa_coverage_report
 
 sim:
-	pytest tb/ 
+	pytest tests/ 
 
 sim_mt:
-	pytest tb/ -n $(shell nproc)
+	pytest tests/ -n $(shell nproc)
 
 wave:
 	gtkwave sim_build/axi_io_pmp.vcd
