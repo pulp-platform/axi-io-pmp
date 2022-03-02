@@ -11,30 +11,28 @@
 // Author:      Andreas Kuster, <kustera@ethz.ch>
 // Description: AXI master to (req_t, resp_t) pair connector (pulp-platform interface)
 
-`timescale 1ns / 1ps
-
 module axi_master_connector #(
     // width of data bus in bits
-    parameter      DATA_WIDTH   = 32,
+    parameter int unsigned DATA_WIDTH   = 32,
     // width of address bus in bits
-    parameter      ADDR_WIDTH   = 32,
+    parameter int unsigned ADDR_WIDTH   = 32,
     // width of strobe (width of data bus in words)
-    parameter      STRB_WIDTH   = (DATA_WIDTH / 8),
+    parameter int unsigned STRB_WIDTH   = (DATA_WIDTH / 8),
     // width of id signal
-    parameter      ID_WIDTH     = 8,
+    parameter int unsigned ID_WIDTH     = 8,
     // width of awuser signal
-    parameter      AWUSER_WIDTH = 1,
+    parameter int unsigned AWUSER_WIDTH = 1,
     // width of wuser signal
-    parameter      WUSER_WIDTH  = 1,
+    parameter int unsigned WUSER_WIDTH  = 1,
     // width of buser signal
-    parameter      BUSER_WIDTH  = 1,
+    parameter int unsigned BUSER_WIDTH  = 1,
     // width of aruser signal
-    parameter      ARUSER_WIDTH = 1,
+    parameter int unsigned ARUSER_WIDTH = 1,
     // width of ruser signal
-    parameter      RUSER_WIDTH  = 1,
+    parameter int unsigned RUSER_WIDTH  = 1,
     // AXI request/response
-    parameter type axi_req_t    = logic,
-    parameter type axi_rsp_t    = logic
+    parameter type         axi_req_t    = logic,
+    parameter type         axi_rsp_t    = logic
 ) (
     //
     // Write address channel
