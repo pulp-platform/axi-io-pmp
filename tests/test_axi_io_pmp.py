@@ -32,10 +32,10 @@ class TB:
         cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
 
         # connect simulation axi master
-        self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
+        self.axi_master = AxiMaster(AxiBus.from_prefix(dut, "in_axi"), dut.clk, dut.rst)
 
         # connect a simulation axi ram (slave)
-        self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "m_axi"), dut.clk, dut.rst, size=2 ** 16)
+        self.axi_ram = AxiRam(AxiBus.from_prefix(dut, "out_axi"), dut.clk, dut.rst, size=2 ** 16)
 
         # connect simulation axi PMP config
         self.axi_pmp_cfg = AxiMaster(AxiBus.from_prefix(dut, "cfg_axi"), dut.clk, dut.rst)
@@ -102,7 +102,7 @@ async def set_pmp_napot(tb, base: int, length: int, access: bitarray, pmp_no: in
     conf: bitarray = locked + reserved + mode + access
     tb.log.info("PMP cfg: %s", conf.to01())
     # address
-    PMP_LEN = tb.dut.axi_io_pmp0.PMP_LEN.value
+    PMP_LEN = tb.dut.i_axi_io_pmp.PMP_LEN.value
     napot_addr = int(base + (length / 2 - 1)) >> 2
     tb.log.info("PMP NAPOT addr: %s", int2ba(napot_addr, PMP_LEN).to01())
 
@@ -203,8 +203,8 @@ async def run_test_bounds(dut, base: int = 0, length: int = 2 ** 12):
     # read data through the IO-PMP (at base address)
     ###########################
     data = await tb.axi_master.read(base, test_len)
-    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
-    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.i_axi_io_pmp.i_read_pmp.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.i_axi_io_pmp.i_write_pmp.allow_o.value)
     assert data.resp == AxiResp.OKAY
     assert data.data == test_data
 
@@ -215,8 +215,8 @@ async def run_test_bounds(dut, base: int = 0, length: int = 2 ** 12):
     res = await tb.axi_master.write(addr, test_data)  # highest address that is still valid for 4byte read
     data = await tb.axi_master.read(addr, test_len)
 
-    tb.log.info("PMP read allow: %s", dut.axi_io_pmp0.pmp0.allow_o.value)
-    tb.log.info("PMP write allow: %s", dut.axi_io_pmp0.pmp1.allow_o.value)
+    tb.log.info("PMP read allow: %s", dut.i_axi_io_pmp.i_read_pmp.allow_o.value)
+    tb.log.info("PMP write allow: %s", dut.i_axi_io_pmp.i_write_pmp.allow_o.value)
 
     assert res.resp == AxiResp.OKAY
     assert data.resp == AxiResp.OKAY
@@ -269,7 +269,7 @@ async def run_test_prio(dut, base: int = 0, length: int = 64):
     access_none = PMPAccess.ACCESS_NONE.value
 
     # loop over all slots
-    PMP_NUM = tb.dut.axi_io_pmp0.NR_ENTRIES.value
+    PMP_NUM = tb.dut.i_axi_io_pmp.NR_ENTRIES.value
     lock = False
     for i in reversed(range(PMP_NUM)):
         # write config
@@ -334,7 +334,7 @@ if cocotb.SIM_NAME:
     TODO
     """
     # define and extract bus information
-    data_width = len(cocotb.top.s_axi_wdata)
+    data_width = len(cocotb.top.in_axi_wdata)
     byte_lanes = data_width // 8
     max_burst_size = (byte_lanes - 1).bit_length()
     mem_range = (0, 2 ** 16)
