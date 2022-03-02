@@ -357,7 +357,7 @@ module axi_io_pmp #(
 `ifndef VERILATOR
 `ifndef SYNTHESIS
   // pragma translate_off
-  if (PMPGranularity < 10) // check IO-PMP granularity restrictions
+  if (PMPGranularity < 10)  // check IO-PMP granularity restrictions
     $fatal(1, "AXI IO-PMP only supports granularity >= 4K");
   // pragma translate_on
 `endif

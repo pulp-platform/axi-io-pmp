@@ -1,3 +1,16 @@
+// Copyright 2022 ETH Zurich and University of Bologna.
+// Copyright and related rights are licensed under the Solderpad Hardware
+// License, Version 0.51 (the "License"); you may not use this file except in
+// compliance with the License.  You may obtain a copy of the License at
+// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
+// or agreed to in writing, software, hardware and materials distributed under
+// this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+//
+// Author:      Andreas Kuster, <kustera@ethz.ch>
+// Description: Register interface cut (breaks combinatorial paths)
+
 module reg_cut #(
     // make this register transparent
     parameter bit  Bypass    = 1'b0,
@@ -5,14 +18,14 @@ module reg_cut #(
     parameter type reg_req_t = logic,
     parameter type reg_rsp_t = logic
 ) (
-    input logic clk_i,
-    input logic rst_ni,
+    input  logic     clk_i,
+    input  logic     rst_ni,
     // input
-    input reg_req_t req_in,
+    input  reg_req_t req_in,
     output reg_rsp_t rsp_in,
     // output
     output reg_req_t req_out,
-    input reg_rsp_t rsp_out
+    input  reg_rsp_t rsp_out
 );
 
   if (Bypass) begin : gen_bypass
