@@ -320,7 +320,7 @@ module axi_io_pmp #(
   ) i_axi_demux (
       .clk_i,
       .rst_ni,
-      .test_i         (testmode_i),
+      .test_i         (devmode_i),
       .slv_aw_select_i(allow_w),
       .slv_ar_select_i(allow_r),
       .slv_req_i      (slv_req_i),
@@ -345,7 +345,7 @@ module axi_io_pmp #(
   ) i_axi_err_slv (
       .clk_i,
       .rst_ni,
-      .test_i    (testmode_i),
+      .test_i    (devmode_i),
       .slv_req_i (error_req),
       .slv_resp_o(error_rsp)
   );
