@@ -102,7 +102,6 @@ async def set_pmp_napot(tb, base: int, length: int, access: bitarray, pmp_no: in
     conf: bitarray = locked + reserved + mode + access
     tb.log.info("PMP cfg: %s", conf.to01())
     # address
-    PMP_LEN = tb.dut.i_axi_io_pmp.PMP_LEN.value
     napot_addr = int(base + (length / 2 - 1)) >> 2
     tb.log.info("PMP NAPOT addr: %s", int2ba(napot_addr, PMP_LEN).to01())
 
@@ -255,7 +254,7 @@ async def run_test_bounds(dut, base: int = 0, length: int = 2 ** 12):
 
 
 
-async def run_test_prio(dut, base: int = 0, length: int = 64):
+async def run_test_prio(dut, base: int = 0, length: int = 64, PMP_NUM: int = 16):
     """
      Test the PMP priority scheme (i.e. port 0 (max) to port 15 (min)) by stacking a fixed memory region on top of each
      other, once locked and once unlocked
@@ -269,7 +268,6 @@ async def run_test_prio(dut, base: int = 0, length: int = 64):
     access_none = PMPAccess.ACCESS_NONE.value
 
     # loop over all slots
-    PMP_NUM = tb.dut.i_axi_io_pmp.NR_ENTRIES.value
     lock = False
     for i in reversed(range(PMP_NUM)):
         # write config
@@ -360,7 +358,7 @@ if cocotb.SIM_NAME:
 
 @pytest.mark.parametrize("data_width", [64])  # [8, 16, 32, 64, 128]
 @pytest.mark.parametrize("addr_width", [64])  # [32, 64]
-@pytest.mark.parametrize("simulator", ["icarus"])  # ["icarus", "verilator", "questa"]
+@pytest.mark.parametrize("simulator", ["icarus", "verilator"])  # ["icarus", "verilator", "questa"]
 def test_axi_io_pmp(request, simulator, addr_width, data_width):
     """
     TODO
@@ -430,7 +428,7 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width):
 
         # toplevel
         "axi_io_pmp.sv",
-        f"{dut}.sv",
+        f"../tb/{dut}.sv",
     ]
     verilog_sources = list(map(lambda x: os.path.join(src_dir, x), verilog_sources))
 
@@ -471,7 +469,8 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width):
         sim.compile_args += ["-Wno-UNOPT", "-Wno-TIMESCALEMOD", "-Wno-CASEINCOMPLETE", "-Wno-WIDTH", "-Wno-SELRANGE",
                              "-Wno-CMPCONST", "-Wno-UNSIGNED"]
         sim.verilog_sources = verilog_sources
-
+        sim.compile_args += ["--trace", "--coverage"]
+        sim.simulation_args += ["--timescale 1ns/1ns"]
     elif simulator == "questa":
         sim = cocotb_test.simulator.Questa(
             toplevel=toplevel,
@@ -522,7 +521,7 @@ def test_axi_io_pmp(request, simulator, addr_width, data_width):
         raise NotImplementedError(f"Simulator {simulator} not implemented")
 
     # add wave generation
-    parameters["WAVES"] = 1
+    parameters["WAVES"] = 0
 
     sim.python_search = [tests_dir]
     sim.toplevel = toplevel
