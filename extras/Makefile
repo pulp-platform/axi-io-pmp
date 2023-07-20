@@ -60,10 +60,8 @@ sources :=  common_cells/src/lzc.sv \
 			../tb/dut.sv
 list_sources := $(foreach dir, ${sources}, ../src/$(dir))
 
-
 format:
 	./format.sh
-
 
 install_sv2v:
 ifeq (,$(wildcard sv2v-Linux.zip))
@@ -71,10 +69,32 @@ ifeq (,$(wildcard sv2v-Linux.zip))
 	unzip sv2v-Linux.zip
 endif
 
-
 sv2v:
 	./sv2v-Linux/sv2v --define=VERILATOR $(list_includes) $(list_packages) $(list_sources) --write iopmp.v
 
+install_synth:
+ifeq (,$(wildcard OpenROAD-flow-scripts))
+	git clone --recursive https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+	./OpenROAD-flow-scripts/build_openroad.sh --local
+endif
+
+install_dependencies:
+	./OpenROAD-flow-scripts/etc/DependencyInstaller.sh
+
+synth:
+	./synth.sh
+
+synth_gui:
+	cd OpenROAD-flow-scripts/flow/ && make gui_final
+
+flow:
+	install_sv2v install_synth sv2v synth
+
+getKGE:
+	python3 getKGE.py OpenROAD-flow-scripts/flow/platforms/nangate45/lib/NangateOpenCellLibrary_typical.lib OpenROAD-flow-scripts/flow/reports/nangate45/dut/base/synth_stat.txt
+
+clean_tools:
+	rm -rf OpenROAD-flow-scripts sv2v-Linux
 
 clean:
 	rm -rf sv2v-Linux/
