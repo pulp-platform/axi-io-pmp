@@ -30,6 +30,9 @@ source venv/bin/activate
 python3 -m pip install wheel
 python3 -m pip install -r requirements.txt
 
+# patch verilator for g++-11
+sudo sh -c "sed -i '29s/^/#include <limits>\n/' /usr/share/verilator/include/verilated.cpp"
+
 # setup questasim
 QUESTA_ENV=/opt/questasim/setup.sh
 if [ -f "$QUESTA_ENV" ]; then

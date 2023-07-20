@@ -1,7 +1,7 @@
 wheel==0.37.1
 cocotb==1.6.1
 cocotb-bus==0.1.1
-git+https://github.com/andreaskuster/cocotb-test@4beff202c36313957e2e558888bff92d0818c79b # fixes coverage support, PR pending (https://github.com/themperek/cocotb-test/pull/172)
+cocotb-test==0.2.0
 cocotbext-axi==0.1.18
 gprof2dot==2021.2.21
 bitarray==2.3.5
@@ -10,5 +10,5 @@ hjson==3.0.2
 pyyaml==6.0.0
 pytest==6.2.5
 pytest-xdist==2.5.0
-pydevd-pycharm~=213.6777.50
-numpy==1.22.1
+pydevd-pycharm~=232.8660.49
+numpy==1.25.1

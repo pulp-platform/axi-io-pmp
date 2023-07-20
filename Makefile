@@ -9,16 +9,17 @@
 # specific language governing permissions and limitations under the License.
 #
 # Author:      Andreas Kuster, <kustera@ethz.ch>
-# Description: General targets from setup to simulation and cleanup
+# Description: General targets from setup to simulation and cleanup.
 
 SHELL := /bin/bash
 
 .PHONY: clean
 
-all: bender_install bender_dl bender_gen_src sim wave questa_coverage_report
+all:
+	bender_install bender_dl bender_gen_src sim wave questa_coverage_report
 
 sim:
-	pytest tests/ 
+	pytest tests/
 
 sim_mt:
 	pytest tests/ -n $(shell nproc)
@@ -29,7 +30,8 @@ wave:
 questa_coverage_report:
 	vcover report -details -html sim_build/axi_io_pmp.ucdb
 
-bender: bender_install bender_dl bender_gen_src
+bender:
+	bender_install bender_dl bender_gen_src
 
 bender_dl:
 	./bender
